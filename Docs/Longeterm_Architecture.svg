@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+<style>
+    .title { font: bold 28px Arial, sans-serif; fill:#222; }
+    .subtitle { font: 16px Arial, sans-serif; fill:#555; }
+    .box { fill:#f8f9fb; stroke:#3b82f6; stroke-width:2; rx:10; }
+    .core { fill:#eef6ff; stroke:#2563eb; stroke-width:2.5; rx:12; }
+    .service { fill:#fefefe; stroke:#64748b; stroke-width:2; rx:10; }
+    .storage { fill:#ecfdf5; stroke:#16a34a; stroke-width:2; rx:10; }
+    .text { font: 15px Arial, sans-serif; fill:#222; text-anchor:middle; }
+    .small { font: 13px Arial, sans-serif; fill:#555; text-anchor:middle; }
+    .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+</style>
+
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <path d="M0,0 L10,3 L0,6 Z" fill="#475569"/>
+  </marker>
+</defs>
+
+<text x="800" y="40" class="title" text-anchor="middle">StateLens Architecture (V1 → Foundation for Runtime Intelligence)</text>
+<text x="800" y="68" class="subtitle" text-anchor="middle">Framework-agnostic platform that operates beside AI agent frameworks</text>
+
+<!-- Frameworks -->
+<rect x="250" y="100" width="1100" height="90" class="box"/>
+<text x="800" y="128" class="text">AI Agent Frameworks</text>
+<text x="800" y="155" class="small">Pipecat • LiveKit • LangGraph • OpenAI Agents SDK • CrewAI • Custom Agents</text>
+
+<!-- SDK -->
+<rect x="575" y="235" width="450" height="80" class="core"/>
+<text x="800" y="265" class="text">StateLens SDK / Adapter</text>
+<text x="800" y="290" class="small">Collects events • No framework replacement</text>
+
+<!-- Event Bus -->
+<rect x="500" y="365" width="600" height="80" class="core"/>
+<text x="800" y="395" class="text">Runtime Event Bus</text>
+<text x="800" y="420" class="small">speech.started • transcript • llm • tool.called • tool.finished • tts • error</text>
+
+<!-- Services -->
+<rect x="120" y="540" width="180" height="100" class="service"/>
+<text x="210" y="575" class="text">Timeline</text>
+<text x="210" y="600" class="text">Service</text>
+<rect x="350" y="540" width="180" height="100" class="service"/>
+<text x="440" y="575" class="text">Replay</text>
+<text x="440" y="600" class="text">Service</text>
+<rect x="580" y="540" width="180" height="100" class="service"/>
+<text x="670" y="575" class="text">Analytics</text>
+<text x="670" y="600" class="text">Service</text>
+<rect x="810" y="540" width="180" height="100" class="service"/>
+<text x="900" y="575" class="text">Policy</text>
+<text x="900" y="600" class="text">Engine</text>
+<rect x="1040" y="540" width="180" height="100" class="service"/>
+<text x="1130" y="575" class="text">Context</text>
+<text x="1130" y="600" class="text">Engine</text>
+<rect x="1270" y="540" width="180" height="100" class="service"/>
+<text x="1360" y="575" class="text">Memory</text>
+<text x="1360" y="600" class="text">Engine</text>
+
+<!-- Storage -->
+<rect x="520" y="780" width="560" height="90" class="storage"/>
+<text x="800" y="815" class="text">Storage Layer</text>
+<text x="800" y="842" class="small">PostgreSQL • ClickHouse • Object Storage • Redis</text>
+
+<!-- Dashboard -->
+<rect x="1170" y="780" width="260" height="90" class="box"/>
+<text x="1300" y="815" class="text">React Dashboard</text>
+<text x="1300" y="842" class="small">Timeline • Replay • Metrics</text>
+
+<!-- Arrows -->
+<line x1="800" y1="190" x2="800" y2="235" class="arrow"/>
+<line x1="800" y1="315" x2="800" y2="365" class="arrow"/>
+
+<line x1="800" y1="445" x2="210" y2="540" class="arrow"/>
+<line x1="800" y1="445" x2="440" y2="540" class="arrow"/>
+<line x1="800" y1="445" x2="670" y2="540" class="arrow"/>
+<line x1="800" y1="445" x2="900" y2="540" class="arrow"/>
+<line x1="800" y1="445" x2="1130" y2="540" class="arrow"/>
+<line x1="800" y1="445" x2="1360" y2="540" class="arrow"/>
+<line x1="210" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="440" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="670" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="900" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="1130" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="1360" y1="640" x2="800" y2="780" class="arrow"/>
+<line x1="1080" y1="825" x2="1170" y2="825" class="arrow"/>
+
+<text x="800" y="940" class="subtitle" text-anchor="middle">
+Frameworks execute the agent. StateLens consumes runtime events and provides observability,
+replay, analytics, policies, context and memory.
+</text>
+</svg>
