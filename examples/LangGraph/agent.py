@@ -186,8 +186,8 @@ def run(question: str) -> str:
 if __name__ == "__main__":
     questions = [
         "What is the current weather in Tokyo?",
-        "Give me a 5-day forecast for London.",
-        "Compare the weather in New York and Mumbai right now.",
+        # "Give me a 5-day forecast for London.",
+        # "Compare the weather in New York and Mumbai right now.",
     ]
 
     for q in questions:
