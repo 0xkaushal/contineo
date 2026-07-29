@@ -1,0 +1,29 @@
+[project]
+name = "contineo"
+version = "0.1.0"
+description = "Run Time Intelligence"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Satvik Kaushal", email = "satvikkaushal8@gmail.com" }
+]
+keywords = ["runtime", "intelligence", "monitoring"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/satvikkaushal/contineo"
+Repository = "https://github.com/satvikkaushal/contineo"
+
+[build-system]
+requires = ["uv_build>=0.11.21,<0.12.0"]
+build-backend = "uv_build"
