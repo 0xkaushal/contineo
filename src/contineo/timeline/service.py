@@ -161,6 +161,7 @@ class TimelineService:
                 "framework": event.framework.value,
                 "input": event.input,
                 "tags": event.tags,
+                "project_id": event.project_id,
             },
         )
         self._log_span_opened(entry, event)

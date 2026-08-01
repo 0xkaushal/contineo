@@ -212,7 +212,7 @@ async def main() -> None:
         answer = run(question)
         print(f"\n  A: {answer}")
 
-        import time; time.sleep(0.05)   # let storage writes settle
+        import time; time.sleep(0.2)   # let storage writes settle
 
         tl = contineo.get_timeline(contineo.last_session_id())
         if tl:

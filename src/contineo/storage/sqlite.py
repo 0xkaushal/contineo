@@ -128,12 +128,17 @@ class SqliteStorage:
                  success, output, error, tags)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(session_id) DO UPDATE SET
+                project_id  = excluded.project_id,
+                agent_name  = excluded.agent_name,
+                framework   = excluded.framework,
+                started_at  = excluded.started_at,
                 finished_at = excluded.finished_at,
                 total_ms    = excluded.total_ms,
                 is_complete = excluded.is_complete,
                 success     = excluded.success,
                 output      = excluded.output,
-                error       = excluded.error
+                error       = excluded.error,
+                tags        = excluded.tags
             """,
             (
                 timeline.session_id,
