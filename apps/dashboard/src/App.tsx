@@ -9,9 +9,9 @@ import { CostsPage } from './pages/CostsPage';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-950 text-gray-100 flex">
+      <div className="flex min-h-screen" style={{ background: '#0d0d12' }}>
         <Sidebar />
-        <main className="flex-1 ml-60 min-h-screen">
+        <main className="flex-1 ml-56 min-h-screen overflow-x-hidden">
           <Routes>
             <Route path="/" element={<SessionsPage />} />
             <Route path="/timeline" element={<TimelinePage />} />

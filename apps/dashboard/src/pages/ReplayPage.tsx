@@ -2,83 +2,105 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { mockSessions, mockReplays } from '../data/mock';
 import { FrameworkBadge } from '../components/Badge';
+import { PageHeader, Card } from '../components/PageHeader';
 import { formatTimestamp } from '../lib/utils';
 import { cn } from '../lib/utils';
 import type { EventType } from '../types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
-const EVENT_COLORS: Record<EventType | string, string> = {
-  'session.started': 'border-violet-500 bg-violet-500/10',
-  'session.finished': 'border-violet-500 bg-violet-500/10',
-  'llm.started': 'border-blue-500 bg-blue-500/10',
-  'llm.completed': 'border-blue-400 bg-blue-500/10',
-  'tool.called': 'border-amber-500 bg-amber-500/10',
-  'tool.completed': 'border-amber-400 bg-amber-500/10',
-  'tool.failed': 'border-red-500 bg-red-500/10',
-  'memory.read': 'border-pink-500 bg-pink-500/10',
-  'memory.write': 'border-pink-500 bg-pink-500/10',
-  'context.loaded': 'border-teal-500 bg-teal-500/10',
-  'tts.started': 'border-indigo-500 bg-indigo-500/10',
-  'tts.completed': 'border-indigo-400 bg-indigo-500/10',
-  'stt.started': 'border-sky-500 bg-sky-500/10',
-  'stt.completed': 'border-sky-400 bg-sky-500/10',
-  error: 'border-red-500 bg-red-500/10',
+const EVENT_ACCENT: Record<string, string> = {
+  'session.started':  '#7c6af7',
+  'session.finished': '#7c6af7',
+  'llm.started':      '#3b82f6',
+  'llm.completed':    '#60a5fa',
+  'tool.called':      '#f59e0b',
+  'tool.completed':   '#fbbf24',
+  'tool.failed':      '#ef4444',
+  'memory.read':      '#ec4899',
+  'memory.write':     '#ec4899',
+  'context.loaded':   '#14b8a6',
+  'tts.started':      '#6366f1',
+  'tts.completed':    '#818cf8',
+  'stt.started':      '#0ea5e9',
+  'stt.completed':    '#38bdf8',
+  error:              '#ef4444',
 };
 
-const EVENT_DOT: Record<EventType | string, string> = {
-  'session.started': 'bg-violet-500',
-  'session.finished': 'bg-violet-400',
-  'llm.started': 'bg-blue-500',
-  'llm.completed': 'bg-blue-400',
-  'tool.called': 'bg-amber-500',
-  'tool.completed': 'bg-amber-400',
-  'tool.failed': 'bg-red-500',
-  error: 'bg-red-500',
+type EventCardEvent = {
+  event_id: string;
+  sequence: number;
+  timestamp: string;
+  event_type: EventType;
+  metadata: Record<string, unknown>;
+  span_id: string;
 };
 
-function EventCard({ event, index }: { event: { event_id: string; sequence: number; timestamp: string; event_type: EventType; metadata: Record<string, unknown>; span_id: string }; index: number }) {
+function EventCard({ event, isLast }: { event: EventCardEvent; isLast: boolean }) {
   const [open, setOpen] = useState(false);
   const hasMetadata = Object.keys(event.metadata).length > 0;
-  const borderClass = EVENT_COLORS[event.event_type] ?? 'border-gray-700 bg-gray-800/30';
-  const dotClass = EVENT_DOT[event.event_type] ?? 'bg-gray-500';
+  const accent = EVENT_ACCENT[event.event_type] ?? 'rgba(255,255,255,0.3)';
 
   return (
-    <div className="relative flex gap-4">
-      {/* Timeline line */}
-      <div className="flex flex-col items-center">
-        <div className={cn('w-3 h-3 rounded-full mt-3.5 flex-shrink-0 ring-2 ring-gray-900', dotClass)} />
-        {index < 11 && <div className="w-0.5 flex-1 bg-gray-800 mt-1" />}
-      </div>
-      {/* Card */}
-      <div className={cn('flex-1 mb-3 border rounded-lg', borderClass)}>
+    <div className="relative flex gap-3">
+      {/* Connector line + dot */}
+      <div className="flex flex-col items-center flex-shrink-0 mt-0.5" style={{ width: 20 }}>
         <div
-          className="flex items-center justify-between px-4 py-2.5 cursor-pointer"
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-2.5"
+          style={{ background: accent, boxShadow: `0 0 6px ${accent}55` }}
+        />
+        {!isLast && (
+          <div className="flex-1 w-px mt-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        )}
+      </div>
+
+      {/* Card */}
+      <div
+        className="flex-1 mb-2 rounded-lg overflow-hidden"
+        style={{ border: `1px solid rgba(255,255,255,0.06)`, background: '#13131a' }}
+      >
+        <div
+          className={cn('flex items-center justify-between px-4 py-2.5', hasMetadata && 'cursor-pointer')}
           onClick={() => hasMetadata && setOpen(!open)}
+          style={hasMetadata ? undefined : undefined}
         >
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600 font-mono w-5 text-right">{event.sequence}</span>
-            <code className="text-xs font-medium text-gray-200">{event.event_type}</code>
-            <code className="text-xs text-gray-600 font-mono hidden sm:block">{event.span_id}</code>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-[11px] font-mono flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)', width: 18, textAlign: 'right' }}>
+              {event.sequence}
+            </span>
+            <div
+              className="w-1 h-3.5 rounded-full flex-shrink-0"
+              style={{ background: accent, opacity: 0.7 }}
+            />
+            <code className="text-[12px] font-medium" style={{ color: accent }}>
+              {event.event_type}
+            </code>
+            <code className="text-[11px] font-mono truncate hidden sm:block" style={{ color: 'rgba(255,255,255,0.18)' }}>
+              {event.span_id}
+            </code>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600 font-mono">{formatTimestamp(event.timestamp)}</span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-[11px] font-mono" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              {formatTimestamp(event.timestamp)}
+            </span>
             {hasMetadata && (
-              <span className="text-gray-600">
+              <span style={{ color: 'rgba(255,255,255,0.2)' }}>
                 {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </span>
             )}
           </div>
         </div>
+
         {open && hasMetadata && (
-          <div className="border-t border-gray-800/50 px-4 py-3">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-              {Object.entries(event.metadata).map(([k, v]) => (
-                <div key={k} className="text-xs">
-                  <span className="text-gray-600">{k}: </span>
-                  <code className="text-gray-300">{String(v)}</code>
-                </div>
-              ))}
-            </div>
+          <div
+            className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-1.5"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.015)' }}
+          >
+            {Object.entries(event.metadata).map(([k, v]) => (
+              <div key={k} className="text-[12px]">
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>{k}: </span>
+                <code style={{ color: 'rgba(255,255,255,0.6)' }}>{String(v)}</code>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -94,80 +116,95 @@ export function ReplayPage() {
   const replay = mockReplays[selectedId];
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Replay</h1>
-          <p className="text-gray-500 text-sm mt-1">Reconstruct event sequences from past sessions</p>
-        </div>
-      </div>
+    <div className="px-8 py-8 max-w-[1400px]">
+      <PageHeader title="Replay" description="Reconstruct event sequences from past sessions" />
 
       {/* Session Picker */}
       <div className="mb-6">
-        <label className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2 block">Session</label>
+        <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          Session
+        </label>
         <select
           value={selectedId}
           onChange={(e) => setSearchParams({ session: e.target.value })}
-          className="bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-violet-500 max-w-lg w-full"
+          className="rounded-lg px-4 py-2.5 text-[13px] outline-none max-w-lg w-full"
+          style={{ background: '#13131a', border: '1px solid rgba(255,255,255,0.07)', color: '#e2e2ea' }}
         >
           {sessionsWithReplay.map((s) => (
-            <option key={s.session_id} value={s.session_id}>
-              {s.agent_name} · {s.framework} · {s.session_id.slice(0, 20)}…
+            <option key={s.session_id} value={s.session_id} style={{ background: '#1a1a24' }}>
+              {s.agent_name} · {s.framework} · {s.session_id.slice(5, 21)}…
             </option>
           ))}
         </select>
       </div>
 
       {replay && session ? (
-        <div className="grid grid-cols-5 gap-6">
-          {/* Event sequence */}
+        <div className="grid grid-cols-5 gap-5">
+          {/* Events */}
           <div className="col-span-3">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4">Event Sequence ({replay.events.length} events)</h2>
-            <div className="space-y-0">
+            <p className="text-[12px] font-medium mb-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {replay.events.length} events
+            </p>
+            <div>
               {replay.events.map((evt, i) => (
-                <EventCard key={evt.event_id} event={evt} index={i} />
+                <EventCard key={evt.event_id} event={evt} isLast={i === replay.events.length - 1} />
               ))}
             </div>
           </div>
 
-          {/* Sidebar: prompt/output + meta */}
-          <div className="col-span-2 space-y-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Session Info</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Agent</span>
-                  <span className="text-gray-200 font-medium">{session.agent_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Framework</span>
-                  <FrameworkBadge framework={session.framework} />
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Events</span>
-                  <span className="text-gray-200">{replay.events.length}</span>
-                </div>
+          {/* Side panel */}
+          <div className="col-span-2 space-y-3">
+            {/* Session info */}
+            <Card className="p-5">
+              <p className="text-[10px] font-semibold tracking-widest uppercase mb-4" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                Session Info
+              </p>
+              <div className="space-y-3">
+                {[
+                  { k: 'Agent', v: <span className="font-medium text-[13px]" style={{ color: '#e2e2ea' }}>{session.agent_name}</span> },
+                  { k: 'Framework', v: <FrameworkBadge framework={session.framework} /> },
+                  { k: 'Events', v: <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{replay.events.length}</span> },
+                ].map(({ k, v }) => (
+                  <div key={k} className="flex items-center justify-between">
+                    <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{k}</span>
+                    {v}
+                  </div>
+                ))}
               </div>
-            </div>
+            </Card>
 
             {replay.prompt && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Input Prompt</h3>
-                <p className="text-sm text-gray-300 leading-relaxed">{replay.prompt}</p>
-              </div>
+              <Card className="p-5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  Input
+                </p>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {replay.prompt}
+                </p>
+              </Card>
             )}
+
             {replay.output && (
-              <div className="bg-gray-900 border border-emerald-900/40 rounded-xl p-5">
-                <h3 className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-3">Final Output</h3>
-                <p className="text-sm text-gray-300 leading-relaxed">{replay.output}</p>
-              </div>
+              <Card
+                className="p-5"
+                style={{ background: '#13131a', border: '1px solid rgba(52,211,153,0.15)' }}
+              >
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'rgba(52,211,153,0.5)' }}>
+                  Output
+                </p>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {replay.output}
+                </p>
+              </Card>
             )}
           </div>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-16 text-center text-gray-600">
-          <p>No replay data available for this session.</p>
-        </div>
+        <Card className="py-20 text-center">
+          <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            No replay data for this session
+          </p>
+        </Card>
       )}
     </div>
   );

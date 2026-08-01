@@ -4,56 +4,83 @@ import {
 } from 'recharts';
 import { mockCosts } from '../data/mock';
 import { StatCard } from '../components/StatCard';
+import { PageHeader, Card } from '../components/PageHeader';
 import { formatCost, formatTokens, formatDate } from '../lib/utils';
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+const PALETTE = ['#3b82f6', '#7c6af7', '#10b981', '#f59e0b'];
 
-const tooltipStyle = {
-  backgroundColor: '#111827',
-  border: '1px solid #1f2937',
-  borderRadius: '8px',
-  color: '#e5e7eb',
+const tooltip = {
+  backgroundColor: '#13131a',
+  border: '1px solid rgba(255,255,255,0.07)',
+  borderRadius: 8,
+  color: '#e2e2ea',
   fontSize: 12,
+  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
 };
+
+const axis = { fontSize: 11, fill: 'rgba(255,255,255,0.2)' };
+
+const TH = 'px-5 py-3 text-left text-[10px] font-semibold tracking-widest uppercase';
+const TD = 'px-5 py-3.5';
 
 export function CostsPage() {
   const data = mockCosts;
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Costs</h1>
-        <p className="text-gray-500 text-sm mt-1">Token usage and cost tracking across providers · Last 7 days</p>
-      </div>
+    <div className="px-8 py-8 max-w-[1400px]">
+      <PageHeader title="Costs" description="Token usage and cost tracking across providers · Last 7 days" />
 
-      {/* KPI row */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-3 mb-6">
         <StatCard label="Total Cost" value={`$${data.total_cost_usd.toFixed(3)}`} sub="Last 7 days" />
-        <StatCard label="LLM Cost" value={`$${data.llm_cost_usd.toFixed(3)}`} sub={`${((data.llm_cost_usd / data.total_cost_usd) * 100).toFixed(0)}% of total`} />
-        <StatCard label="Total Tokens" value={formatTokens(data.total_tokens)} sub={`${formatTokens(data.prompt_tokens)} prompt / ${formatTokens(data.completion_tokens)} completion`} />
-        <StatCard label="Voice Costs" value={`$${(data.tts_cost_usd + data.stt_cost_usd).toFixed(3)}`} sub={`TTS $${data.tts_cost_usd.toFixed(3)} · STT $${data.stt_cost_usd.toFixed(3)}`} />
+        <StatCard
+          label="LLM Cost"
+          value={`$${data.llm_cost_usd.toFixed(3)}`}
+          sub={`${((data.llm_cost_usd / data.total_cost_usd) * 100).toFixed(0)}% of total`}
+        />
+        <StatCard
+          label="Total Tokens"
+          value={formatTokens(data.total_tokens)}
+          sub={`${formatTokens(data.prompt_tokens)} in / ${formatTokens(data.completion_tokens)} out`}
+        />
+        <StatCard
+          label="Voice"
+          value={`$${(data.tts_cost_usd + data.stt_cost_usd).toFixed(3)}`}
+          sub={`TTS $${data.tts_cost_usd.toFixed(3)} · STT $${data.stt_cost_usd.toFixed(3)}`}
+        />
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
-        {/* Cost over time */}
-        <div className="col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">Cost Over Time</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={data.cost_over_time} margin={{ top: 4, right: 4, bottom: 0, left: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`$${Number(v).toFixed(3)}`, 'Cost']} />
-              <Line type="monotone" dataKey="cost" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 3 }} />
+      {/* Charts row 1 */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <Card className="col-span-2 p-5">
+          <p className="text-[12px] font-medium mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>Cost Over Time</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={data.cost_over_time} margin={{ top: 0, right: 4, bottom: 0, left: -16 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="date" tick={axis} axisLine={false} tickLine={false} />
+              <YAxis tick={axis} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltip} formatter={(v) => [`$${Number(v).toFixed(3)}`, 'Cost']} />
+              <defs>
+                <linearGradient id="costLine" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#7c6af7" />
+                  <stop offset="100%" stopColor="#a78bfa" />
+                </linearGradient>
+              </defs>
+              <Line
+                type="monotone"
+                dataKey="cost"
+                stroke="url(#costLine)"
+                strokeWidth={2}
+                dot={{ fill: '#7c6af7', r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: '#a78bfa', strokeWidth: 0 }}
+              />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
 
-        {/* Cost by provider */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">By Provider</h3>
-          <ResponsiveContainer width="100%" height={200}>
+        <Card className="p-5">
+          <p className="text-[12px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>By Provider</p>
+          <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
                 data={data.cost_by_provider}
@@ -61,108 +88,139 @@ export function CostsPage() {
                 nameKey="provider"
                 cx="50%"
                 cy="50%"
-                outerRadius={65}
-                label={({ provider, percent }: { provider?: string; percent?: number }) => `${provider ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                innerRadius={40}
+                outerRadius={62}
+                paddingAngle={3}
+                label={({ provider, percent }: { provider?: string; percent?: number }) =>
+                  `${provider ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
+                }
                 labelLine={false}
               >
                 {data.cost_by_provider.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`$${Number(v).toFixed(3)}`, 'Cost']} />
+              <Tooltip contentStyle={tooltip} formatter={(v) => [`$${Number(v).toFixed(3)}`, 'Cost']} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       </div>
 
-      {/* Cost by model */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">Cost by Model</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={data.cost_by_model} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <YAxis dataKey="model" type="category" tick={{ fontSize: 11, fill: '#6b7280' }} width={120} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} />
-              <Bar dataKey="cost" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+      {/* Charts row 2 */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <Card className="p-5">
+          <p className="text-[12px] font-medium mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>Cost by Model</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={data.cost_by_model} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 8 }} barSize={10}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <XAxis type="number" tick={axis} axisLine={false} tickLine={false} />
+              <YAxis dataKey="model" type="category" tick={axis} width={110} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltip} formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cost']} />
+              <Bar dataKey="cost" fill="#7c6af7" radius={[0, 4, 4, 0]} opacity={0.8} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
 
-        {/* Token breakdown */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">Token Breakdown by Model</h3>
-          <div className="space-y-3 mt-2">
+        <Card className="p-5">
+          <p className="text-[12px] font-medium mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>Tokens by Model</p>
+          <div className="space-y-4 mt-1">
             {data.cost_by_model.map((m, i) => (
               <div key={m.model}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-300 font-mono">{m.model}</span>
-                  <span className="text-gray-500">{formatTokens(m.tokens)} tokens · ${m.cost.toFixed(4)}</span>
+                <div className="flex justify-between items-center mb-1.5">
+                  <code className="text-[12px]" style={{ color: 'rgba(255,255,255,0.55)' }}>{m.model}</code>
+                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    {formatTokens(m.tokens)} · ${m.cost.toFixed(4)}
+                  </span>
                 </div>
-                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${(m.tokens / data.total_tokens) * 100}%`,
-                      backgroundColor: COLORS[i % COLORS.length],
+                      background: PALETTE[i % PALETTE.length],
+                      opacity: 0.7,
                     }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Per-session table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-300">Session Cost Breakdown</h3>
+      {/* Session table */}
+      <Card>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Session Breakdown</p>
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
-              <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Tokens</th>
-              <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">LLM</th>
-              <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Voice</th>
-              <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              {['Session', 'Agent', 'Model', 'Tokens', 'LLM', 'Voice', 'Total', 'Date'].map((h, i) => (
+                <th
+                  key={h}
+                  className={TH}
+                  style={{
+                    color: 'rgba(255,255,255,0.2)',
+                    textAlign: i >= 3 && i <= 6 ? 'right' : 'left',
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800/60">
-            {data.entries.map((entry) => (
-              <tr key={entry.session_id} className="hover:bg-gray-800/30 transition-colors">
-                <td className="px-5 py-3">
-                  <code className="text-xs text-violet-400 font-mono">{entry.session_id.slice(0, 20)}…</code>
+          <tbody>
+            {data.entries.map((entry, i) => (
+              <tr
+                key={entry.session_id}
+                style={{ borderBottom: i < data.entries.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <td className={TD}>
+                  <code className="text-[11px] font-mono" style={{ color: 'rgba(167,139,250,0.7)' }}>
+                    {entry.session_id.slice(5, 21)}…
+                  </code>
                 </td>
-                <td className="px-5 py-3 text-gray-200">{entry.agent_name}</td>
-                <td className="px-5 py-3">
-                  <code className="text-xs text-gray-400">{entry.model}</code>
+                <td className={TD}>
+                  <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{entry.agent_name}</span>
                 </td>
-                <td className="px-5 py-3 text-right text-gray-300 font-mono text-xs">
-                  {formatTokens(entry.total_tokens)}
+                <td className={TD}>
+                  <code className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{entry.model}</code>
                 </td>
-                <td className="px-5 py-3 text-right text-gray-300 font-mono text-xs">
-                  {formatCost(entry.llm_cost_usd)}
+                <td className={`${TD} text-right`}>
+                  <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {formatTokens(entry.total_tokens)}
+                  </span>
                 </td>
-                <td className="px-5 py-3 text-right text-gray-300 font-mono text-xs">
-                  {entry.tts_cost_usd + entry.stt_cost_usd > 0
-                    ? formatCost(entry.tts_cost_usd + entry.stt_cost_usd)
-                    : '—'}
+                <td className={`${TD} text-right`}>
+                  <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {formatCost(entry.llm_cost_usd)}
+                  </span>
                 </td>
-                <td className="px-5 py-3 text-right">
-                  <span className="text-white font-semibold text-xs">{formatCost(entry.total_cost_usd)}</span>
+                <td className={`${TD} text-right`}>
+                  <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {entry.tts_cost_usd + entry.stt_cost_usd > 0
+                      ? formatCost(entry.tts_cost_usd + entry.stt_cost_usd)
+                      : '—'}
+                  </span>
                 </td>
-                <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(entry.timestamp)}</td>
+                <td className={`${TD} text-right`}>
+                  <span className="text-[13px] font-semibold" style={{ color: '#e2e2ea' }}>
+                    {formatCost(entry.total_cost_usd)}
+                  </span>
+                </td>
+                <td className={TD}>
+                  <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    {formatDate(entry.timestamp)}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }
