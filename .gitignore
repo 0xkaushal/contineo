@@ -79,3 +79,6 @@ yarn-error.log*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# SQLite databases (runtime — never commit)
+*.db
