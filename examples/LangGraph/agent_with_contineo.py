@@ -123,8 +123,14 @@ app = build_graph()
 # ---------------------------------------------------------------------------
 
 @contineo.observe(agent_name="weather-agent")           # 3. observe
-def run(question: str) -> str:
-    result = app.invoke({"messages": [HumanMessage(content=question)]})
+def run(question: str, **kwargs) -> str:
+    # Forward `config` so Contineo's callback handler reaches LangGraph.
+    # Contineo injects the handler into kwargs["config"]["callbacks"]
+    # automatically — you just need to pass it through to app.invoke.
+    result = app.invoke(
+        {"messages": [HumanMessage(content=question)]},
+        config=kwargs.get("config"),
+    )
     return result["messages"][-1].content
 
 

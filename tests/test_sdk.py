@@ -162,3 +162,68 @@ class TestInitGuard:
 
         with pytest.raises(RuntimeError, match="not initialised"):
             run("hello")
+
+
+# ---------------------------------------------------------------------------
+# Partial fix regression: config forwarding enables LLM/tool span recording
+# FINDINGS.md [f463dc09] — only session span recorded when config not forwarded
+# ---------------------------------------------------------------------------
+
+class TestConfigForwarding:
+    def test_no_config_forwarding_records_only_session_span(self):
+        """When config is NOT forwarded, only the session span is recorded.
+        This documents the known limitation — not a crash, but incomplete data."""
+
+        captured_config = {}
+
+        @contineo.observe(agent_name="no-forward-agent")
+        def run(question: str) -> str:
+            # simulate app.invoke without forwarding config
+            return "answer"
+
+        run("hello")
+
+        tl = contineo.get_timeline(contineo.last_session_id())
+        assert tl is not None
+        # Only the session span — no LLM or tool spans because
+        # the handler was never passed to any framework invoke call
+        kinds = {e.kind.value for e in tl.entries}
+        assert "session" in kinds
+        assert "llm" not in kinds
+        assert "tool" not in kinds
+
+    def test_config_forwarding_allows_handler_to_be_injected(self):
+        """When the function accepts **kwargs and forwards config,
+        the callback handler is injected and available to the framework."""
+
+        received_callbacks = []
+
+        @contineo.observe(agent_name="forward-agent")
+        def run(question: str, **kwargs) -> str:
+            # Simulate what app.invoke does — pull callbacks from config
+            config = kwargs.get("config") or {}
+            callbacks = config.get("callbacks", [])
+            received_callbacks.extend(callbacks)
+            return "answer"
+
+        run("hello")
+
+        # The Contineo callback handler must have been injected
+        assert len(received_callbacks) == 1
+        from contineo.integrations.langgraph.callback import ContineoCallbackHandler
+        assert isinstance(received_callbacks[0], ContineoCallbackHandler)
+
+    def test_config_forwarding_with_explicit_config_param(self):
+        """Explicit config= parameter works identically to **kwargs."""
+
+        received_callbacks = []
+
+        @contineo.observe(agent_name="explicit-config-agent")
+        def run(question: str, config: dict | None = None) -> str:
+            callbacks = (config or {}).get("callbacks", [])
+            received_callbacks.extend(callbacks)
+            return "answer"
+
+        run("hello")
+
+        assert len(received_callbacks) == 1

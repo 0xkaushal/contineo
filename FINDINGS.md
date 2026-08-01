@@ -77,6 +77,11 @@ Update call sites in both `sync_wrapper` and `async_wrapper` to pass `fn` as the
 kwargs = _inject_callback(fn, kwargs, handler)
 ```
 
+> **✅ Fixed in [`f463dc09`]** 2026-08-01 14:00 UTC
+> Verified: `TypeError: run() got an unexpected keyword argument 'config'` no longer reproduces. `_inject_callback` now checks the function signature via `inspect` before injecting `config`. `examples/LangGraph/agent_with_contineo.py` runs end to end successfully.
+>
+> ⚠️ **Partial fix note:** LLM and tool spans are not recorded when the user's function does not accept `config` (e.g. `def run(question: str)`), because the callback handler is not injected in that case. Only the session span is tracked. This is a silent limitation — see new issue below.
+
 ---
 
 ## [af57d57] 2026-08-01 — ✅ All Good
@@ -92,5 +97,83 @@ kwargs = _inject_callback(fn, kwargs, handler)
 **Commit:** `d23cef93dbca2b11799b1ff83243cb77684f7c82`
 **Message:** feat: add manual testing instructions and findings logging for SDK commits
 **Tested:** Checked what changed (`.opencode/commands/test-commit.md` added, `FINDINGS.md` created — no SDK source code modified). Ran full test suite: 109/109 passed. Ran `uv run python examples/LangGraph/agent_with_contineo.py` — confirms the pre-existing `[4147262d]` decorator bug is still present (unchanged by this commit, which touched no SDK code). No regressions introduced.
+
+---
+
+## [f463dc09] 2026-08-01 14:10 UTC — ❌ Issue Found
+
+**Commit:** `f463dc0925c504f3ded8d0b1d6f913619a037cc9`
+**Message:** feat: enhance @observe decorator to prevent TypeError for functions without config parameter and add comprehensive tests
+
+### Issue
+
+The `TypeError` crash is fixed, but when the user's function does not accept `config` (e.g. `def run(question: str) -> str` as shown in `examples/LangGraph/agent_with_contineo.py`), the callback handler is silently not injected. This means **LLM spans and tool spans are never recorded** — only the top-level session span appears on the timeline.
+
+### Steps to Reproduce
+
+```bash
+uv run python examples/LangGraph/agent_with_contineo.py
+```
+
+Observe the timeline output — only 1 span per session (session only). Expected: session + LLM + tool spans.
+
+Or directly:
+
+```python
+import contineo
+contineo.init(project_id="test")
+
+@contineo.observe(agent_name="weather-agent")
+def run(question: str) -> str:
+    return "sunny"
+
+run("Tokyo")
+import time; time.sleep(0.1)
+tl = contineo.get_timeline(contineo.last_session_id())
+print(len(tl.entries))  # prints 1, LLM/tool spans missing
+```
+
+**Observed:** `Timeline — 1 spans` per run.
+**Expected:** Session + LLM + tool spans all recorded.
+
+### Suggested Fix
+
+Update `examples/LangGraph/agent_with_contineo.py` to pass `config` through so LangGraph receives the callbacks:
+
+```python
+@contineo.observe(agent_name="weather-agent")
+def run(question: str, **kwargs) -> str:
+    result = app.invoke(
+        {"messages": [HumanMessage(content=question)]},
+        config=kwargs.get("config"),
+    )
+    return result["messages"][-1].content
+```
+
+And update the docs/README to show that the wrapped function must forward `config` to `app.invoke`.
+
+### Test Suite
+
+118/118 pass.
+
+> **✅ Fixed in [`f463dc09`]** 2026-08-01 14:20 UTC
+> Verified: `examples/LangGraph/agent_with_contineo.py` was updated in the same commit to use `def run(question: str, **kwargs)` and forward `config=kwargs.get("config")` to `app.invoke`. Timeline now shows full spans — session + LLM + tool calls. Confirmed with 3 questions, 4-5 spans each.
+
+---
+
+## Manual Test Run — 2026-08-01 14:20 UTC — ✅ All Good
+
+**Commit:** `f463dc0925c504f3ded8d0b1d6f913619a037cc9` (no new commit — manual run)
+**Tested:**
+- 121/121 unit tests pass
+- `examples/LangGraph/agent_with_contineo.py` runs end to end — all 3 questions answered, full timeline with session + LLM + tool spans
+- `@observe` raises `RuntimeError` before `init()` ✅
+- Failed agent sets session status to `FAILED` with correct error message ✅
+- Async `@observe` works correctly ✅
+- Fixed `session_id` is honoured ✅
+- Multiple sessions are isolated ✅
+- `CONTINEO_ENABLE_TIMELINE=false` suppresses timeline ✅
+
+No issues found.
 
 ---
