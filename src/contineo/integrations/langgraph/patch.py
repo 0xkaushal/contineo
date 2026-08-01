@@ -7,6 +7,13 @@ invoke / ainvoke / stream / astream is automatically observed by Contineo.
 The user writes zero Contineo-specific code inside their agent.
 They just call contineo.attach(app) once after compiling the graph.
 
+Implementation note:
+    Only stream and astream are patched — NOT invoke/ainvoke.
+    LangGraph's Pregel.invoke internally calls self.stream(), so patching
+    both would create 2 sessions per user-facing invoke() call.
+    Patching stream/astream alone is sufficient to capture every execution
+    path including direct invoke() calls.
+
 Usage::
 
     app = build_graph()
@@ -35,11 +42,8 @@ _CONTINEO_PATCHED = "_contineo_patched"
 def attach_langgraph(graph: Any, agent_name: str) -> None:
     """Patch a compiled LangGraph graph to emit Contineo events on every run.
 
-    Patches four methods in-place:
-        invoke   — sync single run
-        ainvoke  — async single run
-        stream   — sync streaming run
-        astream  — async streaming run
+    Only patches stream and astream — invoke/ainvoke route through these
+    internally, so patching them directly would double-fire session creation.
 
     The patch is idempotent — calling attach() on an already-patched graph
     is a no-op.
@@ -51,8 +55,6 @@ def attach_langgraph(graph: Any, agent_name: str) -> None:
     if getattr(graph, _CONTINEO_PATCHED, False):
         return  # already patched — nothing to do
 
-    _patch_invoke(graph, agent_name)
-    _patch_ainvoke(graph, agent_name)
     _patch_stream(graph, agent_name)
     _patch_astream(graph, agent_name)
 
@@ -60,119 +62,8 @@ def attach_langgraph(graph: Any, agent_name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# sync invoke
-# ---------------------------------------------------------------------------
-
-def _patch_invoke(graph: Any, agent_name: str) -> None:
-    original = graph.invoke
-
-    def patched_invoke(input: Any, config: dict | None = None, **kwargs: Any) -> Any:
-        sid, trace_id, span_id, handler = _setup(agent_name)
-        config = _inject(config, handler)
-
-        fire(state.bus.publish(SessionStartedEvent(
-            project_id=state.project_id,
-            session_id=sid,
-            trace_id=trace_id,
-            span_id=span_id,
-            agent_name=agent_name,
-            framework=Framework.LANGGRAPH,
-            input=_input_str(input),
-        )))
-
-        t0 = time.monotonic()
-        try:
-            result = original(input, config, **kwargs)
-            duration_ms = (time.monotonic() - t0) * 1000
-            fire(state.bus.publish(SessionFinishedEvent(
-                project_id=state.project_id,
-                session_id=sid,
-                trace_id=trace_id,
-                span_id=span_id,
-                agent_name=agent_name,
-                framework=Framework.LANGGRAPH,
-                output=extract_output(result),
-                duration_ms=round(duration_ms, 2),
-                success=True,
-            )))
-            return result
-        except Exception as exc:
-            duration_ms = (time.monotonic() - t0) * 1000
-            fire(state.bus.publish(SessionFinishedEvent(
-                project_id=state.project_id,
-                session_id=sid,
-                trace_id=trace_id,
-                span_id=span_id,
-                agent_name=agent_name,
-                framework=Framework.LANGGRAPH,
-                duration_ms=round(duration_ms, 2),
-                success=False,
-                error_message=str(exc),
-            )))
-            raise
-
-    graph.invoke = patched_invoke
-
-
-# ---------------------------------------------------------------------------
-# async ainvoke
-# ---------------------------------------------------------------------------
-
-def _patch_ainvoke(graph: Any, agent_name: str) -> None:
-    original = graph.ainvoke
-
-    async def patched_ainvoke(input: Any, config: dict | None = None, **kwargs: Any) -> Any:
-        sid, trace_id, span_id, handler = _setup(agent_name)
-        config = _inject(config, handler)
-
-        await state.bus.publish(SessionStartedEvent(
-            project_id=state.project_id,
-            session_id=sid,
-            trace_id=trace_id,
-            span_id=span_id,
-            agent_name=agent_name,
-            framework=Framework.LANGGRAPH,
-            input=_input_str(input),
-        ))
-
-        t0 = time.monotonic()
-        try:
-            result = await original(input, config, **kwargs)
-            duration_ms = (time.monotonic() - t0) * 1000
-            await state.bus.publish(SessionFinishedEvent(
-                project_id=state.project_id,
-                session_id=sid,
-                trace_id=trace_id,
-                span_id=span_id,
-                agent_name=agent_name,
-                framework=Framework.LANGGRAPH,
-                output=extract_output(result),
-                duration_ms=round(duration_ms, 2),
-                success=True,
-            ))
-            return result
-        except Exception as exc:
-            duration_ms = (time.monotonic() - t0) * 1000
-            await state.bus.publish(SessionFinishedEvent(
-                project_id=state.project_id,
-                session_id=sid,
-                trace_id=trace_id,
-                span_id=span_id,
-                agent_name=agent_name,
-                framework=Framework.LANGGRAPH,
-                duration_ms=round(duration_ms, 2),
-                success=False,
-                error_message=str(exc),
-            ))
-            raise
-
-    graph.ainvoke = patched_ainvoke
-
-
-# ---------------------------------------------------------------------------
 # sync stream
 # ---------------------------------------------------------------------------
-
 def _patch_stream(graph: Any, agent_name: str) -> None:
     original = graph.stream
 
