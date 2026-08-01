@@ -443,3 +443,51 @@ This is the correct pattern inside any `async def` function. `time.sleep` should
 No issues found.
 
 ---
+
+## [e753044] 2026-08-01 19:10 UTC — ❌ Issue Found
+
+**Commit:** `e753044791f3cbb7c385d7be7c9e20b419c74021`
+**Message:** feat: add PostgreSQL storage backend and example agent for remote database integration
+
+### What works ✅
+- `connect("sqlite:///path")` factory creates `SqliteStorage` correctly ✅
+- `connect("sqlite:///:memory:")` in-memory mode works ✅
+- `connect("sqlite:///./relative.db")` and absolute paths both work ✅
+- `connect("postgres://...")` and `connect("postgresql://...")` both route to `PostgresStorage` ✅
+- `PostgresStorage.create()` raises clear `ImportError` with install instructions when `asyncpg` not installed ✅
+- `connect()` raises `ValueError` for unsupported schemes (e.g. `redis://`) ✅
+- `PostgresStorage` implements all 5 required `StorageBackend` methods ✅
+- `SqliteStorage` satisfies `StorageBackend` protocol ✅
+- `from contineo.storage import PostgresStorage` works without `asyncpg` installed — import is lazy, only fails at `.create()` call time ✅
+- `postgres` extra defined in `pyproject.toml` with `asyncpg>=0.29.0` ✅
+- `connect()` + `@observe` end-to-end: 2 sessions saved, `list_sessions` returns correct results ✅
+- `connect()` + `attach()` end-to-end works correctly ✅
+- `sqlite:///:memory:` — 3 sessions in-memory, `close()` works ✅
+- `agent_with_sqlite.py` not regressed — 5 sessions accumulated, previous sessions load with full waterfall ✅
+- `agent_with_remote_db.py` parses cleanly, uses `await asyncio.sleep` (not `time.sleep`) ✅
+
+---
+
+### Issue 4 — `*.db` files not in `.gitignore`
+
+#### Description
+
+`examples/LangGraph/contineo.db` is an untracked runtime database. It is not covered by `.gitignore` — a `git add .` would accidentally commit a binary SQLite file to the repo.
+
+#### Steps to Reproduce
+
+```bash
+git check-ignore -v examples/LangGraph/contineo.db
+# (no output — file is NOT ignored)
+```
+
+#### Suggested Fix
+
+Add `*.db` to `.gitignore`:
+
+```
+# SQLite databases
+*.db
+```
+
+---
