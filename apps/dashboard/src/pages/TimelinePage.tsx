@@ -22,23 +22,21 @@ const KIND_BAR: Record<string, string> = {
 function WaterfallBar({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; sessionStartMs: number; totalMs: number }) {
   const offsetMs = new Date(entry.started_at).getTime() - sessionStartMs;
   const durationMs = entry.duration_ms ?? 2;
-  const left = totalMs > 0 ? (offsetMs / totalMs) * 100 : 0;
+  const left  = totalMs > 0 ? (offsetMs / totalMs) * 100 : 0;
   const width = totalMs > 0 ? Math.max((durationMs / totalMs) * 100, 0.8) : 0.8;
   const color = KIND_BAR[entry.kind] ?? '#6b7280';
 
   return (
-    <div className="relative flex-1 h-4" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 4 }}>
+    <div className="relative flex-1 h-4 rounded" style={{ background: 'var(--bg-3)' }}>
       <div
         style={{
           position: 'absolute',
           left: `${left}%`,
           width: `${width}%`,
-          top: 2,
-          bottom: 2,
+          top: 2, bottom: 2,
           borderRadius: 3,
           background: color,
-          opacity: entry.status === 'failed' ? 0.45 : 0.75,
-          transition: 'opacity 0.15s',
+          opacity: entry.status === 'failed' ? 0.4 : 0.72,
         }}
         title={`${entry.label} — ${formatDuration(entry.duration_ms)}`}
       />
@@ -54,8 +52,8 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
     <>
       <tr
         className={cn(entry.status === 'failed' && 'bg-red-500/[0.03]')}
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
+        style={{ borderBottom: '1px solid var(--border)' }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         onMouseLeave={(e) => (e.currentTarget.style.background = entry.status === 'failed' ? 'rgba(239,68,68,0.03)' : 'transparent')}
       >
         <td className="px-4 py-2.5" style={{ width: 260 }}>
@@ -64,7 +62,7 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
               <button
                 onClick={() => setExpanded(!expanded)}
                 className="flex-shrink-0 transition-colors"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </button>
@@ -74,7 +72,7 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
             <KindBadge kind={entry.kind} />
             <span
               className="text-[12px] truncate"
-              style={{ color: 'rgba(255,255,255,0.6)', maxWidth: 100 }}
+              style={{ color: 'var(--text-secondary)', maxWidth: 100 }}
               title={entry.label}
             >
               {entry.label.replace(/^[^:]+:\s*/, '')}
@@ -85,12 +83,12 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
           <StatusBadge status={entry.status} />
         </td>
         <td className="px-4 py-2.5 text-right" style={{ width: 72 }}>
-          <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="text-[12px] font-mono" style={{ color: 'var(--text-tertiary)' }}>
             {formatDuration(entry.duration_ms)}
           </span>
         </td>
         <td className="px-4 py-2.5" style={{ width: 72 }}>
-          <span className="text-[11px] font-mono" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
             {formatTimestamp(entry.started_at)}
           </span>
         </td>
@@ -99,12 +97,12 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
         </td>
       </tr>
       {expanded && (
-        <tr style={{ background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <tr style={{ background: 'var(--bg-hover)', borderBottom: '1px solid var(--border)' }}>
           <td colSpan={5} className="px-10 py-3">
             {entry.error && (
               <div
                 className="mb-2.5 flex items-start gap-2 text-[12px] rounded-lg px-3 py-2.5"
-                style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171' }}
+                style={{ background: 'var(--danger-dim)', color: 'var(--danger)' }}
               >
                 <code className="leading-relaxed">{entry.error}</code>
               </div>
@@ -113,8 +111,8 @@ function SpanRow({ entry, sessionStartMs, totalMs }: { entry: TimelineEntry; ses
               <div className="grid grid-cols-3 gap-x-6 gap-y-1.5">
                 {Object.entries(entry.metadata).map(([k, v]) => (
                   <div key={k} className="text-[12px]">
-                    <span style={{ color: 'rgba(255,255,255,0.25)' }}>{k}: </span>
-                    <code style={{ color: 'rgba(255,255,255,0.6)' }}>{String(v)}</code>
+                    <span style={{ color: 'var(--text-muted)' }}>{k}: </span>
+                    <code style={{ color: 'var(--text-secondary)' }}>{String(v)}</code>
                   </div>
                 ))}
               </div>
@@ -141,48 +139,40 @@ export function TimelinePage() {
     <div className="px-8 py-8 max-w-[1400px]">
       <PageHeader title="Timeline" description="Execution waterfall for agent sessions" />
 
-      {/* Session Picker */}
+      {/* Session picker */}
       <div className="mb-6">
-        <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          Session
-        </label>
+        <label className="block label-xs mb-2">Session</label>
         <select
           value={session.session_id}
           onChange={(e) => setSearchParams({ session: e.target.value })}
           className="rounded-lg px-4 py-2.5 text-[13px] outline-none max-w-lg w-full"
           style={{
-            background: '#13131a',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: '#e2e2ea',
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
           }}
         >
           {mockSessions.map((s) => (
-            <option key={s.session_id} value={s.session_id}
-              style={{ background: '#1a1a24' }}>
+            <option key={s.session_id} value={s.session_id}>
               {s.agent_name} · {s.framework} · {s.status} · {s.session_id.slice(5, 21)}…
             </option>
           ))}
         </select>
       </div>
 
-      {/* Session Meta Pills */}
-      <div
-        className="flex flex-wrap gap-6 px-5 py-4 rounded-xl mb-6"
-        style={{ background: '#13131a', border: '1px solid rgba(255,255,255,0.06)' }}
-      >
+      {/* Meta pills */}
+      <div className="card flex flex-wrap gap-6 px-5 py-4 mb-6">
         {[
-          { label: 'Agent', value: <span className="text-[13px] font-medium" style={{ color: '#e2e2ea' }}>{session.agent_name}</span> },
+          { label: 'Agent',    value: <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{session.agent_name}</span> },
           { label: 'Framework', value: <FrameworkBadge framework={session.framework} /> },
-          { label: 'Status', value: <StatusBadge status={session.status} /> },
-          { label: 'Duration', value: <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{formatDuration(session.duration_ms)}</span> },
-          { label: 'Spans', value: <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{session.span_count}</span> },
-          { label: 'LLM', value: <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{session.llm_calls}</span> },
-          { label: 'Tools', value: <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{session.tool_calls}</span> },
+          { label: 'Status',   value: <StatusBadge status={session.status} /> },
+          { label: 'Duration', value: <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{formatDuration(session.duration_ms)}</span> },
+          { label: 'Spans',    value: <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{session.span_count}</span> },
+          { label: 'LLM',      value: <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{session.llm_calls}</span> },
+          { label: 'Tools',    value: <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{session.tool_calls}</span> },
         ].map(({ label, value }) => (
           <div key={label}>
-            <p className="text-[10px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              {label}
-            </p>
+            <p className="label-xs mb-1.5">{label}</p>
             {value}
           </div>
         ))}
@@ -193,7 +183,7 @@ export function TimelinePage() {
         {Object.entries(KIND_BAR).map(([kind, color]) => (
           <div key={kind} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: color, opacity: 0.75 }} />
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{kind}</span>
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{kind}</span>
           </div>
         ))}
       </div>
@@ -203,17 +193,10 @@ export function TimelinePage() {
         <Card>
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 {['Span', 'Status', 'Duration', 'Time', 'Waterfall'].map((h, i) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-[10px] font-semibold tracking-widest uppercase"
-                    style={{
-                      color: 'rgba(255,255,255,0.2)',
-                      textAlign: i === 2 ? 'right' : 'left',
-                      width: i === 0 ? 260 : i === 1 ? 90 : i === 2 ? 72 : i === 3 ? 72 : undefined,
-                    }}
-                  >
+                  <th key={h} className="th" style={{ textAlign: i === 2 ? 'right' : 'left',
+                    width: i === 0 ? 260 : i === 1 ? 90 : i === 2 ? 72 : i === 3 ? 72 : undefined }}>
                     {h}
                   </th>
                 ))}
@@ -221,21 +204,14 @@ export function TimelinePage() {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <SpanRow
-                  key={entry.span_id}
-                  entry={entry}
-                  sessionStartMs={sessionStartMs}
-                  totalMs={timeline.total_ms}
-                />
+                <SpanRow key={entry.span_id} entry={entry} sessionStartMs={sessionStartMs} totalMs={timeline.total_ms} />
               ))}
             </tbody>
           </table>
         </Card>
       ) : (
         <Card className="py-20 text-center">
-          <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            No timeline data for this session
-          </p>
+          <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>No timeline data for this session</p>
         </Card>
       )}
     </div>

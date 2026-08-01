@@ -10,11 +10,11 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
     <div className="flex items-start justify-between mb-8">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#e2e2ea' }}>
+        <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-[13px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
             {description}
           </p>
         )}
@@ -32,14 +32,7 @@ interface CardProps {
 
 export function Card({ className, children, style }: CardProps) {
   return (
-    <div
-      className={cn('rounded-xl', className)}
-      style={{
-        background: '#13131a',
-        border: '1px solid rgba(255,255,255,0.06)',
-        ...style,
-      }}
-    >
+    <div className={cn('card', className)} style={style}>
       {children}
     </div>
   );
@@ -47,9 +40,9 @@ export function Card({ className, children, style }: CardProps) {
 
 export function CardHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{title}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</p>}
+    <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
+      <p className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>{title}</p>
+      {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
     </div>
   );
 }

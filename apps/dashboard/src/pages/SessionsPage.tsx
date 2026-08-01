@@ -8,9 +8,6 @@ import { PageHeader, Card } from '../components/PageHeader';
 import { formatDuration, formatTimestamp, formatDate } from '../lib/utils';
 import type { Session } from '../types';
 
-const TH = 'px-5 py-3 text-left text-[10px] font-semibold tracking-widest uppercase';
-const TD = 'px-5 py-3.5';
-
 export function SessionsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -41,9 +38,9 @@ export function SessionsPage() {
           <button
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12px] font-medium transition-all"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.45)',
+              background: 'var(--bg-3)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-tertiary)',
             }}
           >
             <RefreshCw size={13} strokeWidth={1.75} />
@@ -74,12 +71,8 @@ export function SessionsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-xs">
-          <Search
-            size={13}
-            strokeWidth={1.75}
-            className="absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-          />
+          <Search size={13} strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             placeholder="Search agent, session ID..."
@@ -87,12 +80,12 @@ export function SessionsPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-lg text-[13px] transition-all outline-none"
             style={{
-              background: '#13131a',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: '#e2e2ea',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
             }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(124,106,247,0.5)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-border)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           />
         </div>
         <div className="flex gap-1.5">
@@ -103,8 +96,8 @@ export function SessionsPage() {
               className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
               style={
                 statusFilter === s
-                  ? { background: 'rgba(124,106,247,0.2)', color: '#a78bfa', border: '1px solid rgba(124,106,247,0.3)' }
-                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.06)' }
+                  ? { background: 'var(--accent-dim)', color: 'var(--accent-light)', border: '1px solid var(--accent-border)' }
+                  : { background: 'var(--bg-3)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }
               }
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -117,15 +110,10 @@ export function SessionsPage() {
       <Card>
         <table className="w-full">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Session</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Agent</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Framework</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Status</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Duration</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>LLM</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Tools</th>
-              <th className={TH} style={{ color: 'rgba(255,255,255,0.2)' }}>Started</th>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['Session', 'Agent', 'Framework', 'Status', 'Duration', 'LLM', 'Tools', 'Started'].map((h) => (
+                <th key={h} className="th">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -133,65 +121,55 @@ export function SessionsPage() {
               <tr
                 key={session.session_id}
                 onClick={() => handleRowClick(session)}
-                className="cursor-pointer group transition-colors"
-                style={{
-                  borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
+                className="cursor-pointer transition-colors"
+                style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <td className={TD}>
-                  <code
-                    className="text-[11px] font-mono"
-                    style={{ color: 'rgba(167,139,250,0.8)' }}
-                  >
+                <td className="px-5 py-3.5">
+                  <code className="text-[11px] font-mono" style={{ color: 'var(--accent)' }}>
                     {session.session_id.slice(5, 21)}…
                   </code>
                 </td>
-                <td className={TD}>
+                <td className="px-5 py-3.5">
                   <div className="flex items-center gap-2">
-                    <Bot size={13} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
-                    <span className="text-[13px] font-medium" style={{ color: '#e2e2ea' }}>
+                    <Bot size={13} strokeWidth={1.5} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
                       {session.agent_name}
                     </span>
                   </div>
                 </td>
-                <td className={TD}>
-                  <FrameworkBadge framework={session.framework} />
-                </td>
-                <td className={TD}>
-                  <StatusBadge status={session.status} />
-                </td>
-                <td className={TD}>
-                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    <Clock size={12} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                <td className="px-5 py-3.5"><FrameworkBadge framework={session.framework} /></td>
+                <td className="px-5 py-3.5"><StatusBadge status={session.status} /></td>
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    <Clock size={12} strokeWidth={1.5} style={{ color: 'var(--text-muted)' }} />
                     {formatDuration(session.duration_ms)}
                   </div>
                 </td>
-                <td className={TD}>
-                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    <Cpu size={12} strokeWidth={1.5} style={{ color: '#60a5fa', opacity: 0.7 }} />
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    <Cpu size={12} strokeWidth={1.5} style={{ color: '#3b82f6', opacity: 0.8 }} />
                     {session.llm_calls}
                   </div>
                 </td>
-                <td className={TD}>
-                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
                     {session.error_count > 0
-                      ? <AlertCircle size={12} strokeWidth={1.5} style={{ color: '#f87171' }} />
-                      : <Wrench size={12} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    }
+                      ? <AlertCircle size={12} strokeWidth={1.5} style={{ color: 'var(--danger)' }} />
+                      : <Wrench size={12} strokeWidth={1.5} style={{ color: 'var(--text-muted)' }} />}
                     {session.tool_calls}
                     {session.error_count > 0 && (
-                      <span className="text-[11px]" style={{ color: '#f87171' }}>
+                      <span className="text-[11px]" style={{ color: 'var(--danger)' }}>
                         {session.error_count} err
                       </span>
                     )}
                   </div>
                 </td>
-                <td className={TD}>
-                  <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <td className="px-5 py-3.5">
+                  <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(session.started_at)}
-                    <span className="block text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                    <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
                       {formatTimestamp(session.started_at)}
                     </span>
                   </div>
@@ -202,8 +180,8 @@ export function SessionsPage() {
         </table>
         {filtered.length === 0 && (
           <div className="py-20 text-center">
-            <Search size={20} strokeWidth={1.25} className="mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.15)' }} />
-            <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.25)' }}>No sessions match your filters</p>
+            <Search size={20} strokeWidth={1.25} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+            <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>No sessions match your filters</p>
           </div>
         )}
       </Card>
