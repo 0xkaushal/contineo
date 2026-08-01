@@ -2,33 +2,24 @@
 Weather Agent — instrumented with Contineo Observe
 ===================================================
 
-This file shows exactly what a developer does after:
+This is what a developer writes after:
 
     pip install "contineo[langgraph]"
 
-The agent itself is a standard LangGraph ReAct agent.
-Contineo is added in THREE steps and nothing else changes:
+Three things change from a plain LangGraph agent:
 
-    Step 1 — Import Contineo
-    Step 2 — Create bus, timeline, and handler (before the agent runs)
-    Step 3 — Pass handler into app.invoke() via the callbacks config
+    1.  import contineo
+    2.  contineo.init(project_id="...")         — once at startup
+    3.  @contineo.observe(agent_name="...")     — on the run function
 
-That's it. The agent code is untouched.
-
-Setup:
-    cp .env.example .env       # add OPENROUTER_API_KEY
-    python agent_with_contineo.py
+Nothing else changes. The agent code is identical to agent.py.
 """
 
-from __future__ import annotations
-
-import asyncio
 import json
 import os
-import time
-import uuid
 from typing import Annotated
 
+import contineo                                          # 1. import
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
@@ -37,21 +28,14 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
-# ==========================================================================
-# Step 1 — Import Contineo
-# ==========================================================================
-from contineo.bus import EventBus
-from contineo.events.base import Framework
-from contineo.events.session import SessionFinishedEvent, SessionStartedEvent
-from contineo.integrations.langgraph import ContineoCallbackHandler
-from contineo.timeline import TimelineService
-
 load_dotenv()
 
+contineo.init(project_id="weather-app")                 # 2. init once
 
-# ==========================================================================
-# Agent — 100% unchanged from a standard LangGraph agent
-# ==========================================================================
+
+# ---------------------------------------------------------------------------
+# Agent — 100% standard LangGraph, nothing Contineo-specific below this line
+# ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
@@ -92,8 +76,8 @@ def get_weather_forecast(city: str, days: int = 3) -> str:
     return json.dumps({"city": city, "forecast": forecast})
 
 
-tools          = [get_current_weather, get_weather_forecast]
-tools_by_name  = {t.name: t for t in tools}
+tools         = [get_current_weather, get_weather_forecast]
+tools_by_name = {t.name: t for t in tools}
 
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
@@ -131,98 +115,24 @@ def build_graph():
     return g.compile()
 
 
-# ==========================================================================
-# Step 2 — Create the Contineo bus, timeline, and callback handler
-#          Do this ONCE, before any agent runs.
-# ==========================================================================
-
-bus      = EventBus()
-timeline = TimelineService(bus)   # auto-subscribes to the bus — no extra wiring needed
-
-PROJECT_ID = "weather-app"
-AGENT_NAME = "weather-agent"
+app = build_graph()
 
 
-async def run_with_contineo(question: str) -> str:
-    """Run one question through the agent, fully observed by Contineo."""
+# ---------------------------------------------------------------------------
+# The only thing that changes from a plain agent — the decorator
+# ---------------------------------------------------------------------------
 
-    # Every run gets its own session ID and trace ID
-    session_id = str(uuid.uuid4())
-    trace_id   = str(uuid.uuid4())
-    span_id    = str(uuid.uuid4())
-
-    # Create a handler tied to this specific session
-    handler = ContineoCallbackHandler(
-        bus=bus,
-        project_id=PROJECT_ID,
-        session_id=session_id,
-        agent_name=AGENT_NAME,
-        trace_id=trace_id,
-    )
-
-    # Tell Contineo this session is starting
-    await bus.publish(SessionStartedEvent(
-        project_id=PROJECT_ID,
-        session_id=session_id,
-        trace_id=trace_id,
-        span_id=span_id,
-        agent_name=AGENT_NAME,
-        framework=Framework.LANGGRAPH,
-        input=question,
-    ))
-
-    # -----------------------------------------------------------------------
-    # Step 3 — Pass the handler into invoke via config={"callbacks": [...]}
-    #          This is the ONLY change to a normal app.invoke() call.
-    # -----------------------------------------------------------------------
-    app = build_graph()
-    t0  = time.monotonic()
-
-    result = app.invoke(
-        {"messages": [HumanMessage(content=question)]},
-        config={"callbacks": [handler]},          # <-- the one Contineo line
-    )
-
-    duration_ms = (time.monotonic() - t0) * 1000
-    answer      = result["messages"][-1].content
-
-    # Tell Contineo this session is done
-    await bus.publish(SessionFinishedEvent(
-        project_id=PROJECT_ID,
-        session_id=session_id,
-        trace_id=trace_id,
-        span_id=span_id,
-        agent_name=AGENT_NAME,
-        framework=Framework.LANGGRAPH,
-        output=answer,
-        duration_ms=round(duration_ms, 2),
-        success=True,
-    ))
-
-    # -----------------------------------------------------------------------
-    # Read the timeline back — this is the data you'd send to a dashboard,
-    # store in a database, or log to your observability platform.
-    # -----------------------------------------------------------------------
-    tl = timeline.get_timeline(session_id)
-
-    print(f"\n{'─' * 60}")
-    print(f"  Q: {question}")
-    print(f"  A: {answer}")
-    print(f"{'─' * 60}")
-    print(f"  Timeline — {len(tl.entries)} spans recorded\n")
-
-    for entry in tl.sorted_entries:
-        status_icon = "✓" if entry.status.value == "completed" else "✗"
-        duration    = f"{entry.duration_ms:.1f}ms" if entry.duration_ms else "—"
-        indent      = "    " if entry.kind.value in ("tool", "memory", "context") else "  "
-        print(f"{indent}{status_icon}  {entry.label:<40}  {duration}")
-
-    print(f"\n  Total: {tl.total_ms:.1f}ms\n")
-
-    return answer
+@contineo.observe(agent_name="weather-agent")           # 3. observe
+def run(question: str) -> str:
+    result = app.invoke({"messages": [HumanMessage(content=question)]})
+    return result["messages"][-1].content
 
 
-async def main():
+# ---------------------------------------------------------------------------
+# Run and print timeline
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
     questions = [
         "What is the current weather in Tokyo?",
         "Give me a 3-day forecast for London.",
@@ -230,10 +140,18 @@ async def main():
     ]
 
     for question in questions:
-        await run_with_contineo(question)
+        print(f"\nQ: {question}")
+        answer = run(question)
+        print(f"A: {answer}")
 
-    await bus.shutdown()
+        # Read the timeline Contineo recorded for this run
+        timeline = contineo.get_timeline(contineo.last_session_id())
+        print(f"\nTimeline — {len(timeline.entries)} spans\n")
+        for entry in timeline.sorted_entries:
+            icon   = "✓" if entry.status.value == "completed" else "✗"
+            dur    = f"{entry.duration_ms:.1f}ms" if entry.duration_ms else "—"
+            indent = "    " if entry.kind.value in ("tool", "memory", "context") else "  "
+            print(f"{indent}{icon}  {entry.label:<45} {dur}")
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        print(f"\n  Total: {timeline.total_ms:.0f}ms")
+        print("-" * 60)

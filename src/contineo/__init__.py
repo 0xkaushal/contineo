@@ -2,6 +2,11 @@
 
 __version__ = "0.1.1"
 
+# ---------------------------------------------------------------------------
+# Primary SDK surface — the three things most developers ever need
+# ---------------------------------------------------------------------------
+from contineo.sdk import init, observe, get_timeline, last_session_id
+
 from contineo.events import (
     BaseEvent,
     EventType,
@@ -27,6 +32,11 @@ from contineo.timeline import TimelineService, Timeline, TimelineEntry, SpanKind
 
 __all__ = [
     "__version__",
+    # Primary SDK
+    "init",
+    "observe",
+    "get_timeline",
+    "last_session_id",
     # Events
     "BaseEvent",
     "EventType",
