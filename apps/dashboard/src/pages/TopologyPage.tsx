@@ -3,7 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -157,8 +156,6 @@ export function TopologyPage() {
 
   const bgColor   = isDark ? '#0d0d12' : '#f5f5f7';
   const dotColor  = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
-  const miniMapBg = isDark ? '#13131a' : '#ffffff';
-  const miniMapNode = isDark ? '#7c6af7' : '#6452e9';
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 0px)' }}>
@@ -215,15 +212,7 @@ export function TopologyPage() {
               borderRadius: 8,
             }}
           />
-          <MiniMap
-            style={{
-              background: miniMapBg,
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-            }}
-            nodeColor={miniMapNode}
-            maskColor={isDark ? 'rgba(13,13,18,0.7)' : 'rgba(245,245,247,0.7)'}
-          />
+
           <Panel position="top-left">
             <Legend />
           </Panel>
