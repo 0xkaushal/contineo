@@ -490,4 +490,22 @@ Add `*.db` to `.gitignore`:
 *.db
 ```
 
+> **✅ Fixed in [`fa38b76a`]** 2026-08-01 19:01 UTC
+> `*.db` added to `.gitignore`. Verified: `git add --dry-run .` does not stage `contineo.db`. `git check-ignore --no-index` confirms the rule matches.
+
+---
+
+## [fa38b76a] 2026-08-01 19:01 UTC — ✅ All Good
+
+**Commit:** `fa38b76a04e05554ffcad1c1e6ed4fd7eaf06bad`
+**Message:** fix: add '*.db' to .gitignore to prevent committing runtime SQLite database files
+
+**Tested:**
+- `*.db` rule correctly ignores `examples/LangGraph/contineo.db` ✅
+- `git add --dry-run .` — no `.db` files staged ✅
+- SQLite storage still works after the change — sessions saved, `list_sessions` returns results ✅
+- `agent_with_sqlite.py` — timeline prints, 7 previous sessions loaded from disk ✅
+
+No issues found.
+
 ---
