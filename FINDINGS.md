@@ -79,6 +79,14 @@ kwargs = _inject_callback(fn, kwargs, handler)
 
 ---
 
+## [af57d57] 2026-08-01 — ✅ All Good
+
+**Commit:** `af57d57396fad7b5fa0d868f747e819d633a9283`
+**Message:** docs: update findings log with recent test results and confirm no SDK changes
+**Tested:** Confirmed only `FINDINGS.md` changed (no SDK source modified). Ran full test suite: 109/109 passed. Re-ran open bug reproduction for `[4147262d]` — bug still reproduces (unchanged, as expected; this commit touched no SDK code). Ran `uv run python examples/LangGraph/agent_with_contineo.py` — pre-existing decorator crash persists. No regressions introduced by this commit.
+
+---
+
 ## [d23cef93] 2026-08-01 14:00 UTC — ✅ All Good
 
 **Commit:** `d23cef93dbca2b11799b1ff83243cb77684f7c82`

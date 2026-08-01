@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import time
 import uuid
 from typing import Any, Callable, TypeVar
@@ -50,12 +51,12 @@ def observe(
             return result["messages"][-1].content
     """
     def decorator(fn: F) -> F:
-        if asyncio.iscoroutinefunction(fn):
+        if inspect.iscoroutinefunction(fn):
             @functools.wraps(fn)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 state.require_init()
                 sid, trace_id, span_id, handler = _setup_session(agent_name, session_id)
-                kwargs = _inject_callback(kwargs, handler)
+                kwargs = _inject_callback(fn, kwargs, handler)
                 await state.bus.publish(SessionStartedEvent(
                     project_id=state.project_id,
                     session_id=sid,
@@ -102,7 +103,7 @@ def observe(
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 state.require_init()
                 sid, trace_id, span_id, handler = _setup_session(agent_name, session_id)
-                kwargs = _inject_callback(kwargs, handler)
+                kwargs = _inject_callback(fn, kwargs, handler)
                 fire(state.bus.publish(SessionStartedEvent(
                     project_id=state.project_id,
                     session_id=sid,
@@ -172,8 +173,26 @@ def _setup_session(agent_name: str, fixed_session_id: str | None):
     return sid, trace_id, span_id, handler
 
 
-def _inject_callback(kwargs: dict, handler: Any) -> dict:
-    """Append the Contineo handler to config[callbacks] without overwriting."""
+def _inject_callback(fn: Callable, kwargs: dict, handler: Any) -> dict:
+    """Append the Contineo handler to config[callbacks] without overwriting.
+
+    Only injects ``config`` if the wrapped function actually accepts it —
+    either via an explicit ``config`` parameter or via ``**kwargs``.
+    This prevents a ``TypeError`` when the user's function signature is
+    plain, e.g. ``def run(question: str) -> str``.
+
+    The handler is still created and will capture LLM/tool events via
+    LangChain's callback mechanism when the user passes config themselves.
+    When the function doesn't accept config at all (e.g. a simple wrapper),
+    the handler is a no-op for that run but session events are still emitted.
+    """
+    params = inspect.signature(fn).parameters
+    accepts_config = "config" in params or any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
+    if not accepts_config:
+        return kwargs  # don't inject — function won't accept it
+
     config    = dict(kwargs.get("config") or {})
     callbacks = list(config.get("callbacks") or [])
     callbacks.append(handler)
