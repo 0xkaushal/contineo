@@ -18,11 +18,31 @@ classifiers = [
     "Typing :: Typed",
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+langgraph = [
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+postgres = [
+    "asyncpg>=0.29.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/satvikkaushal/contineo"
 Repository = "https://github.com/satvikkaushal/contineo"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["uv_build>=0.11.21,<0.12.0"]

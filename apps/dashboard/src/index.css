@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────── */
+
+:root {
+  /* Dark theme (default) */
+  --bg:          #0d0d12;
+  --bg-2:        #13131a;
+  --bg-3:        #1a1a24;
+  --bg-hover:    rgba(255,255,255,0.025);
+  --border:      rgba(255,255,255,0.06);
+  --border-md:   rgba(255,255,255,0.09);
+  --border-strong: rgba(255,255,255,0.13);
+
+  --text-primary:   #e2e2ea;
+  --text-secondary: rgba(255,255,255,0.5);
+  --text-tertiary:  rgba(255,255,255,0.25);
+  --text-muted:     rgba(255,255,255,0.18);
+
+  --accent:         #7c6af7;
+  --accent-light:   #a78bfa;
+  --accent-dim:     rgba(124,106,247,0.15);
+  --accent-border:  rgba(124,106,247,0.3);
+
+  --success:        #34d399;
+  --success-dim:    rgba(52,211,153,0.12);
+  --danger:         #f87171;
+  --danger-dim:     rgba(248,113,113,0.10);
+  --warning:        #fbbf24;
+  --warning-dim:    rgba(251,191,36,0.10);
+
+  --chart-grid:     rgba(255,255,255,0.04);
+  --scrollbar:      rgba(255,255,255,0.08);
+  --scrollbar-hover:rgba(255,255,255,0.14);
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg:          #f5f5f7;
+  --bg-2:        #ffffff;
+  --bg-3:        #ededf0;
+  --bg-hover:    rgba(0,0,0,0.025);
+  --border:      rgba(0,0,0,0.07);
+  --border-md:   rgba(0,0,0,0.11);
+  --border-strong: rgba(0,0,0,0.16);
+
+  --text-primary:   #111118;
+  --text-secondary: rgba(0,0,0,0.5);
+  --text-tertiary:  rgba(0,0,0,0.35);
+  --text-muted:     rgba(0,0,0,0.22);
+
+  --accent:         #6452e9;
+  --accent-light:   #7c6af7;
+  --accent-dim:     rgba(100,82,233,0.1);
+  --accent-border:  rgba(100,82,233,0.25);
+
+  --success:        #059669;
+  --success-dim:    rgba(5,150,105,0.1);
+  --danger:         #dc2626;
+  --danger-dim:     rgba(220,38,38,0.08);
+  --warning:        #d97706;
+  --warning-dim:    rgba(217,119,6,0.1);
+
+  --chart-grid:     rgba(0,0,0,0.05);
+  --scrollbar:      rgba(0,0,0,0.1);
+  --scrollbar-hover:rgba(0,0,0,0.18);
+
+  color-scheme: light;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+::selection { background: var(--accent-dim); }
+
+/* ─── Select element theming ────────────────────────────────────── */
+
+select option {
+  background: var(--bg-3);
+  color: var(--text-primary);
+}
+
+/* ─── React Flow overrides ──────────────────────────────────────── */
+
+.react-flow__controls-button {
+  background: var(--bg-2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+}
+.react-flow__controls-button:hover {
+  background: var(--bg-3) !important;
+}
+.react-flow__edge-path {
+  transition: opacity 0.15s;
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  opacity: 1 !important;
+}
+.react-flow__node:hover {
+  z-index: 10;
+}
+
+/* ─── Recharts ──────────────────────────────────────────────────── */
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--chart-grid) !important;
+}
+.recharts-tooltip-wrapper { outline: none !important; }
+
+/* ─── Utility classes ───────────────────────────────────────────── */
+
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.th {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  text-align: left;
+}
+
+.label-xs {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
