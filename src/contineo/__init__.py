@@ -23,6 +23,7 @@ from contineo.events import (
     ErrorEvent,
 )
 from contineo.bus import EventBus, EventBusProtocol, EventHandler, FeatureFlags
+from contineo.timeline import TimelineService, Timeline, TimelineEntry, SpanKind, SpanStatus
 
 __all__ = [
     "__version__",
@@ -50,5 +51,11 @@ __all__ = [
     "EventBusProtocol",
     "EventHandler",
     "FeatureFlags",
+    # Timeline
+    "TimelineService",
+    "Timeline",
+    "TimelineEntry",
+    "SpanKind",
+    "SpanStatus",
 ]
 
