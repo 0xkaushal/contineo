@@ -6,6 +6,7 @@ __version__ = "0.1.1"
 # Primary SDK surface — the three things most developers ever need
 # ---------------------------------------------------------------------------
 from contineo.sdk import init, observe, attach, get_timeline, last_session_id
+from contineo.storage import StorageBackend, SqliteStorage
 
 from contineo.events import (
     BaseEvent,
@@ -38,6 +39,9 @@ __all__ = [
     "observe",
     "get_timeline",
     "last_session_id",
+    # Storage
+    "StorageBackend",
+    "SqliteStorage",
     # Events
     "BaseEvent",
     "EventType",

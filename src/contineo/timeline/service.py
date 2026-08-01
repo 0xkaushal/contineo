@@ -51,16 +51,23 @@ class TimelineService:
     open span is closed and moved into the session's Timeline.
 
     Args:
-        bus:   The EventBus instance to subscribe to.
-        flags: Feature flags. If ``flags.timeline`` is False the service
-               registers no handlers and is effectively a no-op.
+        bus:     The EventBus instance to subscribe to.
+        flags:   Feature flags. If ``flags.timeline`` is False the service
+                 registers no handlers and is effectively a no-op.
+        storage: Optional storage backend. When provided, every closed span
+                 and every completed session is persisted automatically.
     """
 
-    def __init__(self, bus: EventBus, flags: FeatureFlags | None = None) -> None:
+    def __init__(
+        self,
+        bus: EventBus,
+        flags: FeatureFlags | None = None,
+        storage=None,
+    ) -> None:
         self._flags = flags or FeatureFlags.load()
         self._timelines: dict[str, Timeline] = {}
-        # span_id (or call_id for tools) → open entry
         self._open_spans: dict[str, TimelineEntry] = {}
+        self._storage = storage  # StorageBackend | None
 
         if not self._flags.timeline:
             logger.info(
@@ -169,16 +176,22 @@ class TimelineService:
                 "success": event.success,
                 "total_tokens": event.total_tokens,
                 "total_cost_usd": event.total_cost_usd,
+                "agent_name": event.agent_name,
+                "project_id": event.project_id,
             },
             error=event.error_message if not event.success else None,
         )
         if entry:
             timeline = self._timelines[event.session_id]
-            # Use model_copy to update immutable fields
             object.__setattr__(timeline, "is_complete", True)
             if event.duration_ms is not None:
                 object.__setattr__(timeline, "total_ms", event.duration_ms)
             self._log_span_closed(entry, event)
+
+            # Persist the full session to storage
+            if self._storage is not None:
+                from contineo.sdk.utils import fire
+                fire(self._storage.save_session(timeline))
 
     # ------------------------------------------------------------------
     # LLM handlers
@@ -540,13 +553,18 @@ class TimelineService:
         )
 
     def _commit_entry(self, entry: TimelineEntry) -> None:
-        """Append a closed entry to its session's Timeline."""
+        """Append a closed entry to its session's Timeline and persist it."""
         timeline = self._timelines.get(entry.session_id)
         if timeline is None:
-            # Edge case: event arrived before session.started
             self._ensure_timeline(entry.session_id)
             timeline = self._timelines[entry.session_id]
         timeline.entries.append(entry)
+
+        # Persist the span if a storage backend is configured
+        if self._storage is not None:
+            import asyncio
+            from contineo.sdk.utils import fire
+            fire(self._storage.save_span(entry))
 
     # ------------------------------------------------------------------
     # Logging helpers

@@ -1,8 +1,5 @@
 """
 Contineo Observe — SDK: global state container.
-
-_SDKState holds the single shared instance of the bus, timeline,
-and config that every SDK call works against.
 """
 
 from __future__ import annotations
@@ -22,6 +19,7 @@ class _SDKState:
         self.framework: Framework = Framework.UNKNOWN
         self.flags: FeatureFlags = FeatureFlags.load()
         self._last_session_id: str | None = None
+        self.storage = None  # StorageBackend | None
 
     def require_init(self) -> None:
         if not self.initialised:
@@ -31,5 +29,4 @@ class _SDKState:
             )
 
 
-# Single global instance — created at import time, populated by init()
 state = _SDKState()
