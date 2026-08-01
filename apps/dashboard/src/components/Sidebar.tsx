@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, GitBranch, PlayCircle, BarChart2, DollarSign, Zap, Sun, Moon } from 'lucide-react';
+import { LayoutGrid, GitBranch, PlayCircle, BarChart2, DollarSign, Zap, Sun, Moon, Share2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 
 const navItems = [
   { to: '/', label: 'Sessions', icon: LayoutGrid, end: true },
+  { to: '/topology', label: 'Topology', icon: Share2 },
   { to: '/timeline', label: 'Timeline', icon: GitBranch },
   { to: '/replay', label: 'Replay', icon: PlayCircle },
   { to: '/analytics', label: 'Analytics', icon: BarChart2 },

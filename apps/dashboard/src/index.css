@@ -102,6 +102,27 @@ select option {
   color: var(--text-primary);
 }
 
+/* ─── React Flow overrides ──────────────────────────────────────── */
+
+.react-flow__controls-button {
+  background: var(--bg-2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+}
+.react-flow__controls-button:hover {
+  background: var(--bg-3) !important;
+}
+.react-flow__edge-path {
+  transition: opacity 0.15s;
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  opacity: 1 !important;
+}
+.react-flow__node:hover {
+  z-index: 10;
+}
+
 /* ─── Recharts ──────────────────────────────────────────────────── */
 
 .recharts-cartesian-grid-horizontal line,
