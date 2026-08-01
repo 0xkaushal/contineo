@@ -360,3 +360,62 @@ import time; time.sleep(0.2)   # was 0.05 — too short for fire() to settle
 ```
 
 ---
+
+## [c8e4fff5] 2026-08-01 18:50 UTC — ❌ Issue Found
+
+**Commit:** `c8e4fff5ad8c37b0f0ae207fc957d4211fd19757`
+**Message:** feat: enhance SQLite storage backend to include tags and project_id in session updates
+
+### What works ✅
+- Issue 1 fixed — `project_id='weather-app'` and `agent_name='weather-agent'` now correctly saved to DB ✅
+- `list_sessions(project_id="weather-app")` now returns correct sessions ✅
+- `list_sessions` with wrong project_id returns `[]` ✅
+- `total_ms` saves accurately with both `@observe` and `attach()` ✅
+- Span data fully persists and reloads correctly ✅
+
+---
+
+### Issue 3 — `agent_with_sqlite.py` timeline and DB writes still broken due to `time.sleep` in async context
+
+#### Description
+
+`agent_with_sqlite.py` still shows no timeline output and writes nothing to the DB. The `time.sleep(0.2)` fix (replacing the original 0.05s) does not solve the problem because **`main()` is an async function run under `asyncio.run()`**. Calling `time.sleep()` inside an async context blocks the entire event loop, preventing `fire()` tasks from executing. This means:
+- `session.started` / `session.finished` events are never published
+- The in-memory timeline is never populated
+- Nothing is written to SQLite
+
+#### Steps to Reproduce
+
+```bash
+cd examples/LangGraph
+python agent_with_sqlite.py
+# No timeline shown, DB has 0 sessions and 0 spans
+```
+
+Confirm DB is empty:
+```python
+import sqlite3
+conn = sqlite3.connect("examples/LangGraph/contineo.db")
+print(conn.execute("SELECT COUNT(*) FROM sessions").fetchone())  # (0,)
+```
+
+**Observed:** 0 sessions in DB, no timeline printed.
+**Expected:** Sessions written to DB, timeline printed per run.
+
+#### Root Cause
+
+`fire()` in `src/contineo/sdk/utils.py` uses `loop.create_task(coro)` when a loop is running. But `time.sleep()` is a blocking call — it suspends the Python thread without yielding to the event loop, so scheduled tasks never get a chance to run during that sleep window.
+
+#### Suggested Fix
+
+Replace `time.sleep(0.2)` with `await asyncio.sleep(0.2)` in `agent_with_sqlite.py`:
+
+```python
+# examples/LangGraph/agent_with_sqlite.py — inside main()
+import asyncio
+await asyncio.sleep(0.2)   # yields to event loop so fire() tasks can execute
+```
+
+This is the correct pattern inside any `async def` function. `time.sleep` should never be used inside async code.
+
+---
