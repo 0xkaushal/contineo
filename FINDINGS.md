@@ -78,3 +78,11 @@ kwargs = _inject_callback(fn, kwargs, handler)
 ```
 
 ---
+
+## [d23cef93] 2026-08-01 14:00 UTC — ✅ All Good
+
+**Commit:** `d23cef93dbca2b11799b1ff83243cb77684f7c82`
+**Message:** feat: add manual testing instructions and findings logging for SDK commits
+**Tested:** Checked what changed (`.opencode/commands/test-commit.md` added, `FINDINGS.md` created — no SDK source code modified). Ran full test suite: 109/109 passed. Ran `uv run python examples/LangGraph/agent_with_contineo.py` — confirms the pre-existing `[4147262d]` decorator bug is still present (unchanged by this commit, which touched no SDK code). No regressions introduced.
+
+---
