@@ -22,9 +22,11 @@ from contineo.events import (
     ContextLoadedEvent,
     ErrorEvent,
 )
+from contineo.bus import EventBus, EventBusProtocol, EventHandler, FeatureFlags
 
 __all__ = [
     "__version__",
+    # Events
     "BaseEvent",
     "EventType",
     "Framework",
@@ -43,5 +45,10 @@ __all__ = [
     "MemoryWriteEvent",
     "ContextLoadedEvent",
     "ErrorEvent",
+    # Bus
+    "EventBus",
+    "EventBusProtocol",
+    "EventHandler",
+    "FeatureFlags",
 ]
 
