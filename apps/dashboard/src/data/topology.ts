@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { mockSessions, mockAnalytics } from './mock';
 
-// ─── Types attached to each node's `data` ─────────────────────────
+// ─── Types ────────────────────────────────────────────────────────
 
 export interface AgentNodeData extends Record<string, unknown> {
   agentName: string;
@@ -26,32 +26,35 @@ export interface EdgeData extends Record<string, unknown> {
   avgLatencyLabel: string;
 }
 
-// ─── Hardcoded agent→tool mapping (derived from mock sessions/analytics) ──
+// ─── Agent → Tool wiring ──────────────────────────────────────────
 
 const AGENT_TOOLS: Record<string, string[]> = {
-  'weather-agent':      ['get_weather', 'get_forecast', 'format_response'],
-  'research-agent':     ['search_web', 'read_file'],
+  'weather-agent':        ['get_weather', 'get_forecast', 'format_response'],
+  'research-agent':       ['search_web', 'read_file'],
   'customer-support-bot': ['search_web', 'format_response', 'read_file', 'write_file'],
-  'code-review-agent':  ['read_file', 'write_file', 'format_response', 'search_web'],
-  'data-analysis-agent': ['read_file', 'format_response'],
+  'code-review-agent':    ['read_file', 'write_file', 'format_response', 'search_web'],
+  'data-analysis-agent':  ['read_file', 'format_response'],
 };
 
-// ─── Build graph ───────────────────────────────────────────────────
+// ─── Node dimensions (must match rendered sizes) ──────────────────
+
+const AGENT_W = 210;
+const AGENT_H = 110;
+const TOOL_H  = 90;
+
+// ─── Build graph ─────────────────────────────────────────────────
 
 export function buildTopologyGraph(): { nodes: Node[]; edges: Edge[] } {
-  // Aggregate per-agent stats from sessions
+  // ── Aggregate agent stats ──────────────────────────────────────
   const agentStats: Record<string, AgentNodeData> = {};
   for (const s of mockSessions) {
     if (!agentStats[s.agent_name]) {
       agentStats[s.agent_name] = {
         agentName: s.agent_name,
         framework: s.framework,
-        sessionCount: 0,
-        successCount: 0,
-        failedCount: 0,
-        runningCount: 0,
-        llmCalls: 0,
-        toolCalls: 0,
+        sessionCount: 0, successCount: 0,
+        failedCount: 0, runningCount: 0,
+        llmCalls: 0, toolCalls: 0,
       };
     }
     const a = agentStats[s.agent_name];
@@ -63,91 +66,187 @@ export function buildTopologyGraph(): { nodes: Node[]; edges: Edge[] } {
     a.toolCalls += s.tool_calls;
   }
 
-  // Tool lookup from analytics
   const toolStats: Record<string, { callCount: number; successRate: number }> = {};
   for (const t of mockAnalytics.top_tools) {
     toolStats[t.name] = { callCount: t.count, successRate: t.success_rate };
   }
 
-  // Collect all unique tools referenced by agents present in sessions
   const agentNames = Object.keys(agentStats);
-  const usedTools = new Set<string>();
+  const usedTools  = new Set<string>();
   for (const a of agentNames) {
     for (const t of AGENT_TOOLS[a] ?? []) usedTools.add(t);
   }
+  const toolList = Array.from(usedTools);
 
-  // ── Layout ──────────────────────────────────────────────────────
-  // Agents arranged in a vertical column on the left-centre.
-  // Tools fanned out to the right, positioned by first-seen agent.
+  // ── Layout: bipartite, agents left / tools right ───────────────
+  //
+  // Agent column: evenly spaced, centred vertically.
+  // Tool column:  each tool Y = weighted centroid of agent rows that use it,
+  //               then push apart if they still collide.
 
-  const AGENT_X = 160;
-  const AGENT_Y_START = 60;
-  const AGENT_Y_GAP = 180;
+  const V_PAD   = 40;   // padding from canvas top
+  const H_GAP   = 320;  // horizontal gap between columns
 
-  const TOOL_X = 560;
-  const TOOL_Y_START = 40;
-  const TOOL_Y_GAP = 110;
+  const AGENT_X = 60;
+  const TOOL_X  = AGENT_X + AGENT_W + H_GAP;
 
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-
-  // Agent nodes
+  // Place agents evenly
+  const AGENT_Y_GAP = AGENT_H + 60;
+  const agentY: Record<string, number> = {};
   agentNames.forEach((name, i) => {
+    agentY[name] = V_PAD + i * AGENT_Y_GAP;
+  });
+
+  // For each tool, compute centroid of agents that use it (by agent centre Y)
+  const toolCentroid: Record<string, number> = {};
+  for (const toolName of toolList) {
+    const users = agentNames.filter((a) => (AGENT_TOOLS[a] ?? []).includes(toolName));
+    if (users.length === 0) {
+      toolCentroid[toolName] = V_PAD;
+    } else {
+      const avgY = users.reduce((sum, a) => sum + agentY[a] + AGENT_H / 2, 0) / users.length;
+      toolCentroid[toolName] = avgY - TOOL_H / 2;
+    }
+  }
+
+  // Sort tools by centroid so push-apart runs top-to-bottom
+  const sortedTools = [...toolList].sort((a, b) => toolCentroid[a] - toolCentroid[b]);
+
+  // Push apart: ensure min spacing between consecutive tools
+  const MIN_TOOL_GAP = TOOL_H + 28;
+  const toolY: Record<string, number> = {};
+  sortedTools.forEach((name, i) => {
+    if (i === 0) {
+      toolY[name] = Math.max(V_PAD, toolCentroid[name]);
+    } else {
+      const prev = sortedTools[i - 1];
+      const minY = toolY[prev] + MIN_TOOL_GAP;
+      toolY[name] = Math.max(toolCentroid[name], minY);
+    }
+  });
+
+  // ── Build nodes ────────────────────────────────────────────────
+  const nodes: Node[] = [];
+
+  agentNames.forEach((name) => {
     nodes.push({
       id: `agent__${name}`,
       type: 'agentNode',
-      position: { x: AGENT_X, y: AGENT_Y_START + i * AGENT_Y_GAP },
+      position: { x: AGENT_X, y: agentY[name] },
       data: agentStats[name],
     });
   });
 
-  // Tool nodes — unique, positioned vertically on right side
-  const toolList = Array.from(usedTools);
-  toolList.forEach((toolName, i) => {
+  for (const toolName of toolList) {
     const stat = toolStats[toolName] ?? { callCount: 0, successRate: 0 };
-    const agentsThatUse = agentNames.filter((a) => (AGENT_TOOLS[a] ?? []).includes(toolName));
+    const users = agentNames.filter((a) => (AGENT_TOOLS[a] ?? []).includes(toolName));
     nodes.push({
       id: `tool__${toolName}`,
       type: 'toolNode',
-      position: { x: TOOL_X, y: TOOL_Y_START + i * TOOL_Y_GAP },
+      position: { x: TOOL_X, y: toolY[toolName] },
       data: {
         toolName,
         callCount: stat.callCount,
         successRate: stat.successRate,
-        agentNames: agentsThatUse,
+        agentNames: users,
       } satisfies ToolNodeData,
     });
-  });
+  }
 
-  // Edges: agent → tool
-  let edgeIdx = 0;
+  // ── Build edges ────────────────────────────────────────────────
+  //
+  // Key anti-overlap tricks:
+  //   1. Use bezier ('default') not smoothstep — bezier curves spread naturally.
+  //   2. Give each edge a unique sourceY offset so N edges leaving the same
+  //      agent exit at different vertical positions on the right handle.
+  //   3. Give each edge a unique targetY offset so N edges arriving at the
+  //      same tool arrive at different vertical positions on the left handle.
+  //   4. No edge labels (they land on top of each other) — put call count
+  //      only in the detail panel.
+
+  const edges: Edge[] = [];
+  let idx = 0;
+
+  // Pre-compute per-node edge counts for offset spread
+  const agentEdgeCount: Record<string, number>  = {};
+  const agentEdgeCursor: Record<string, number> = {};
+  const toolEdgeCount: Record<string, number>   = {};
+  const toolEdgeCursor: Record<string, number>  = {};
+
   for (const agentName of agentNames) {
-    for (const toolName of AGENT_TOOLS[agentName] ?? []) {
-      if (!usedTools.has(toolName)) continue;
+    agentEdgeCount[agentName] = (AGENT_TOOLS[agentName] ?? []).length;
+    agentEdgeCursor[agentName] = 0;
+  }
+  for (const toolName of toolList) {
+    toolEdgeCount[toolName] = agentNames.filter((a) =>
+      (AGENT_TOOLS[a] ?? []).includes(toolName)).length;
+    toolEdgeCursor[toolName] = 0;
+  }
+
+  for (const agentName of agentNames) {
+    const tools = AGENT_TOOLS[agentName] ?? [];
+    for (const toolName of tools) {
+      if (!toolY[toolName]) continue;
+
       const stat = toolStats[toolName] ?? { callCount: 0, successRate: 100 };
-      // Rough per-agent-tool call count (divide evenly among agents that use it)
-      const agentCount = agentNames.filter((a) => (AGENT_TOOLS[a] ?? []).includes(toolName)).length;
+      const agentCount = toolEdgeCount[toolName] ?? 1;
       const perAgentCalls = Math.round(stat.callCount / Math.max(agentCount, 1));
+
+      // Compute vertical offset for source (agent right side)
+      const aTotalEdges = agentEdgeCount[agentName];
+      const aIdx        = agentEdgeCursor[agentName]++;
+      // Spread across 60% of node height, centred
+      const aSpread = Math.min(AGENT_H * 0.6, (aTotalEdges - 1) * 18);
+      const aOffset = aTotalEdges > 1
+        ? -aSpread / 2 + aIdx * (aSpread / (aTotalEdges - 1))
+        : 0;
+
+      // Compute vertical offset for target (tool left side)
+      const tTotalEdges = toolEdgeCount[toolName];
+      const tIdx        = toolEdgeCursor[toolName]++;
+      const tSpread = Math.min(TOOL_H * 0.6, (tTotalEdges - 1) * 16);
+      const tOffset = tTotalEdges > 1
+        ? -tSpread / 2 + tIdx * (tSpread / (tTotalEdges - 1))
+        : 0;
+
+      const edgeColor =
+        stat.successRate >= 95 ? '#7c6af7'
+        : stat.successRate >= 80 ? '#f59e0b'
+        : '#ef4444';
+
+      const isRunning = (agentStats[agentName]?.runningCount ?? 0) > 0;
+
       edges.push({
-        id: `e${edgeIdx++}`,
+        id: `e${idx++}`,
         source: `agent__${agentName}`,
         target: `tool__${toolName}`,
-        type: 'smoothstep',
-        animated: agentStats[agentName]?.runningCount > 0,
-        label: `${perAgentCalls} calls`,
-        labelStyle: { fontSize: 10, fill: 'var(--text-muted)' },
-        labelBgStyle: { fill: 'var(--bg-2)', fillOpacity: 0.85 },
-        labelBgPadding: [4, 6] as [number, number],
-        labelBgBorderRadius: 4,
-        style: {
-          stroke: stat.successRate >= 95 ? '#7c6af7' : stat.successRate >= 80 ? '#f59e0b' : '#ef4444',
-          strokeWidth: 1.5,
-          opacity: 0.55,
-        },
+        // Use 'default' bezier — curves diverge naturally, avoid parallel overlap
+        type: 'default',
+        animated: isRunning,
+        // Offset source/target handles using sourceY/targetY in markerEnd is
+        // not supported directly — instead we embed offsets via data and let
+        // a custom edge handle it. Here we use the simplest approach: unique
+        // handle IDs per edge so React Flow treats each exit point separately.
+        sourceHandle: null,
+        targetHandle: null,
+        // Embed the pixel offsets so TopologyPage can render custom edges
         data: {
           callCount: perAgentCalls,
           avgLatencyLabel: '~480ms',
-        } satisfies EdgeData,
+          sourceOffset: aOffset,
+          targetOffset: tOffset,
+        } satisfies EdgeData & { sourceOffset: number; targetOffset: number },
+        style: {
+          stroke: edgeColor,
+          strokeWidth: 1.5,
+          opacity: 0.6,
+        },
+        markerEnd: {
+          type: 'arrowclosed' as const,
+          color: edgeColor,
+          width: 10,
+          height: 10,
+        },
       });
     }
   }

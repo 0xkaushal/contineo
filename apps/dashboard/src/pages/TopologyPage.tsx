@@ -16,12 +16,17 @@ import '@xyflow/react/dist/style.css';
 import { buildTopologyGraph } from '../data/topology';
 import type { AgentNodeData, ToolNodeData } from '../data/topology';
 import { AgentNode, ToolNode } from '../components/TopologyNodes';
+import { OffsetBezierEdge } from '../components/TopologyEdge';
 import { PageHeader } from '../components/PageHeader';
 import { useTheme } from '../lib/theme';
 
 const nodeTypes = {
   agentNode: AgentNode,
   toolNode:  ToolNode,
+};
+
+const edgeTypes = {
+  default: OffsetBezierEdge,
 };
 
 // ── Detail panel shown on node click ─────────────────────────────
@@ -184,6 +189,7 @@ export function TopologyPage() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.25 }}
           minZoom={0.3}
