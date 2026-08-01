@@ -1,6 +1,6 @@
 """contineo - Run Time Intelligence"""
 
-__version__ = "0.1.1"
+__version__ = "0.1.3"
 
 # ---------------------------------------------------------------------------
 # Primary SDK surface — the three things most developers ever need
