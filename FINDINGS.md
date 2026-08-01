@@ -177,3 +177,68 @@ And update the docs/README to show that the wrapped function must forward `confi
 No issues found.
 
 ---
+
+## Manual Test Run — 2026-08-01 14:40 UTC — ❌ Issue Found
+
+**Commit:** `f463dc0925c504f3ded8d0b1d6f913619a037cc9` (unstaged: `contineo.attach()`)
+**New files tested:** `src/contineo/sdk/attach.py`, `src/contineo/integrations/langgraph/patch.py`
+
+### What works ✅
+- 139/139 unit tests pass
+- Framework detection correctly identifies LangGraph compiled graph
+- `attach()` raises `RuntimeError` if called before `init()`
+- `attach()` raises `TypeError` for unsupported object types with a clear message
+- `invoke()` records session span, marks complete on success, FAILED on error
+- `ainvoke()` works correctly — session recorded, is_complete, status correct
+- Idempotency flag (`_contineo_patched`) prevents double-wrapping on second `attach()` call
+
+---
+
+### Issue — Double session created per `invoke()` call
+
+#### Description
+
+Every single call to `app.invoke()` creates **2 sessions** on the timeline instead of 1. This is because LangGraph's own `invoke` implementation internally calls `self.stream()` — and since both `invoke` and `stream` are independently patched by `attach_langgraph`, `_setup()` (which creates a new session) fires twice per user-facing call.
+
+#### Steps to Reproduce
+
+```python
+import contineo, time
+from langgraph.graph import StateGraph, START, END
+
+# ... build any graph ...
+app = g.compile()
+
+contineo.init(project_id="test")
+contineo.attach(app, agent_name="test-agent")
+
+app.invoke({"messages": [...]})   # one user call
+time.sleep(0.1)
+
+from contineo.sdk.state import state
+print(len(state.timeline.session_ids))  # prints 2, expected 1
+```
+
+**Observed:** 2 sessions per `invoke()` call.
+**Expected:** 1 session per `invoke()` call.
+
+#### Root Cause
+
+In `src/contineo/integrations/langgraph/patch.py`, `_patch_invoke` and `_patch_stream` are patched independently. LangGraph's `Pregel.invoke` calls `self.stream()` internally (`langgraph/pregel/main.py`), so the patched `stream` fires a second `_setup()` from within the first patched `invoke`.
+
+#### Suggested Fix
+
+Only patch `stream` and `astream`. Do not patch `invoke` and `ainvoke` separately — let LangGraph's native routing handle them. Since `invoke` always routes through `stream` internally, patching `stream` alone is sufficient to capture every run:
+
+```python
+def attach_langgraph(graph: Any, agent_name: str) -> None:
+    if getattr(graph, _CONTINEO_PATCHED, False):
+        return
+    _patch_stream(graph, agent_name)
+    _patch_astream(graph, agent_name)
+    setattr(graph, _CONTINEO_PATCHED, True)
+```
+
+If direct `invoke`/`ainvoke` patching is desired for other reasons, add a guard inside each patch to check whether a session is already in-progress for this call chain before calling `_setup()`.
+
+---

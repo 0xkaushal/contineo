@@ -1,18 +1,29 @@
 """
-Weather Agent — instrumented with Contineo Observe
-===================================================
+Weather Agent — instrumented with contineo.attach()
+====================================================
 
-This is what a developer writes after:
+This example shows the PRIMARY recommended integration pattern.
 
     pip install "contineo[langgraph]"
 
-Three things change from a plain LangGraph agent:
+Only TWO lines of Contineo code are needed:
 
-    1.  import contineo
-    2.  contineo.init(project_id="...")         — once at startup
-    3.  @contineo.observe(agent_name="...")     — on the run function
+    contineo.init(project_id="...")
+    contineo.attach(app, agent_name="...")
 
-Nothing else changes. The agent code is identical to agent.py.
+After attach() the agent is completely unchanged:
+  - No @decorator on any function
+  - No **kwargs
+  - No config forwarding
+  - app.invoke / app.stream / app.ainvoke / app.astream all work as-is
+
+When to use this vs @contineo.observe:
+  - Use attach()  when you own the graph object (most cases)
+  - Use @observe  when you want to wrap a specific function boundary
+
+Setup:
+    cp .env.example .env      # add OPENROUTER_API_KEY
+    python agent_with_attach.py
 """
 
 import json
@@ -34,7 +45,7 @@ contineo.init(project_id="weather-app")                 # 2. init once
 
 
 # ---------------------------------------------------------------------------
-# Agent — 100% standard LangGraph, nothing Contineo-specific below this line
+# Agent — 100% standard LangGraph, zero Contineo involvement below this line
 # ---------------------------------------------------------------------------
 
 class AgentState(TypedDict):
@@ -115,23 +126,21 @@ def build_graph():
     return g.compile()
 
 
+# ---------------------------------------------------------------------------
+# Attach Contineo — one line, after graph.compile(), before first invoke
+# ---------------------------------------------------------------------------
+
 app = build_graph()
+contineo.attach(app, agent_name="weather-agent")        # 3. attach
 
 
 # ---------------------------------------------------------------------------
-# The only thing that changes from a plain agent — the decorator
-#
-# The run function must accept **kwargs and forward config to app.invoke
-# so that Contineo's callback handler reaches LangGraph and records
-# LLM and tool spans (not just the session span).
+# Plain run function — completely unchanged from agent.py
+# No **kwargs, no config forwarding, no decorator
 # ---------------------------------------------------------------------------
 
-@contineo.observe(agent_name="weather-agent")           # 3. observe
-def run(question: str, **kwargs) -> str:
-    result = app.invoke(
-        {"messages": [HumanMessage(content=question)]},
-        config=kwargs.get("config"),
-    )
+def run(question: str) -> str:
+    result = app.invoke({"messages": [HumanMessage(content=question)]})
     return result["messages"][-1].content
 
 
@@ -151,7 +160,7 @@ if __name__ == "__main__":
         answer = run(question)
         print(f"A: {answer}")
 
-        # Read the timeline Contineo recorded for this run
+        # Read the timeline — same API regardless of which pattern you used
         timeline = contineo.get_timeline(contineo.last_session_id())
         print(f"\nTimeline — {len(timeline.entries)} spans\n")
         for entry in timeline.sorted_entries:
