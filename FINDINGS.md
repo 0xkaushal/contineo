@@ -241,4 +241,28 @@ def attach_langgraph(graph: Any, agent_name: str) -> None:
 
 If direct `invoke`/`ainvoke` patching is desired for other reasons, add a guard inside each patch to check whether a session is already in-progress for this call chain before calling `_setup()`.
 
+> **✅ Fixed in [`29aac155`]** 2026-08-01 15:10 UTC
+> `_patch_invoke` and `_patch_ainvoke` removed from `attach_langgraph`. Only `stream` and `astream` are now patched. Verified: 1 session per `invoke()` call, 1 session per `ainvoke()` call, 3 invocations → 3 sessions, idempotency (3x attach → still 1 session), stream directly → 1 session. All correct.
+
+---
+
+## [29aac155] 2026-08-01 15:10 UTC — ✅ All Good
+
+**Commit:** `29aac1551ad1514d0bc004d7ffdbf6de6ea9afd4`
+**Message:** feat: simplify attach_langgraph by removing invoke/ainvoke patching and updating documentation
+
+**Tested:**
+
+- **Double session bug fixed** — 1 session per `invoke()` call ✅
+- **3 sequential invocations** → 3 isolated sessions, all complete ✅
+- **Error path** — crashing node sets session to `FAILED` with correct error message ✅
+- **`ainvoke()`** — 1 session, complete, correct status ✅
+- **`stream()` directly** — 1 session, complete ✅
+- **Idempotency** — 3x `attach()` on same graph + 1 `invoke()` → still 1 session ✅
+- **Before init** — `attach()` raises `RuntimeError` ✅
+- **Unsupported type** — `attach('string')` raises `TypeError` ✅
+- **Real-world example** — `examples/LangGraph/agent_with_contineo.py` ran all 3 questions, full timeline with session + LLM + tool spans per run ✅
+
+No issues found.
+
 ---
