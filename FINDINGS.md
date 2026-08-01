@@ -418,4 +418,28 @@ await asyncio.sleep(0.2)   # yields to event loop so fire() tasks can execute
 
 This is the correct pattern inside any `async def` function. `time.sleep` should never be used inside async code.
 
+> **✅ Fixed in [`4316692f`]** 2026-08-01 19:00 UTC
+> `time.sleep(0.2)` replaced with `await asyncio.sleep(0.2)` in `agent_with_sqlite.py`. Verified: timeline now prints for every question, previous sessions load correctly across runs, DB accumulates sessions and spans.
+
+---
+
+## [4316692f] 2026-08-01 19:00 UTC — ✅ All Good
+
+**Commit:** `4316692f163b26b98239febea59e1d5908878a76`
+**Message:** fix: replace time.sleep with asyncio.sleep for better event loop handling
+
+**Tested:**
+
+- **Timeline prints** — full session + LLM + tool spans shown after every question ✅
+- **DB writes** — sessions and spans persist to `contineo.db` on every run ✅
+- **project_id and agent_name** — correctly stored as `'weather-app'` and `'weather-agent'` ✅
+- **Previous sessions** — load from DB across process restarts, show full span details ✅
+- **Sessions accumulate** — 4 sessions in DB after 2 runs (2 questions per run) ✅
+- **Pagination** — `list_sessions(limit=2, offset=0/2)` returns correct pages with no overlap ✅
+- **Error path** — failed sessions stored with `success=0`, `error` message, `is_complete=1` ✅
+- **Full reload from scratch** — `SqliteStorage(path=existing_db)` correctly reloads all sessions and spans ✅
+- **Ran example twice** — second run shows 3 previous sessions with full waterfall from disk ✅
+
+No issues found.
+
 ---
