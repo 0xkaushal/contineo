@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
   Background,
@@ -18,6 +19,8 @@ import { AgentNode, ToolNode } from '../components/TopologyNodes';
 import { OffsetBezierEdge } from '../components/TopologyEdge';
 import { PageHeader } from '../components/PageHeader';
 import { useTheme } from '../lib/theme';
+import { TOOL_MAP } from '../data/tools';
+import { Play } from 'lucide-react';
 
 const nodeTypes = {
   agentNode: AgentNode,
@@ -34,10 +37,12 @@ function DetailPanel({
   data,
   type,
   onClose,
+  onRunTool,
 }: {
   data: AgentNodeData | ToolNodeData;
   type: 'agent' | 'tool';
   onClose: () => void;
+  onRunTool?: (toolName: string) => void;
 }) {
   return (
     <div
@@ -90,6 +95,7 @@ function DetailPanel({
 
       {type === 'tool' && (() => {
         const d = data as ToolNodeData;
+        const hasSchema = !!TOOL_MAP[d.toolName];
         return (
           <div className="space-y-2.5">
             {[
@@ -103,6 +109,20 @@ function DetailPanel({
                 <span className="text-[12px] font-medium text-right" style={{ color: 'var(--text-primary)' }}>{String(v)}</span>
               </div>
             ))}
+            {hasSchema && (
+              <button
+                onClick={() => onRunTool?.(d.toolName)}
+                className="w-full flex items-center justify-center gap-2 mt-3 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all"
+                style={{
+                  background: 'var(--accent)',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 12px rgba(124,106,247,0.35)',
+                }}
+              >
+                <Play size={13} strokeWidth={2.5} />
+                Run Tool
+              </button>
+            )}
           </div>
         );
       })()}
@@ -144,6 +164,7 @@ function Legend() {
 
 export function TopologyPage() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   const { nodes: initNodes, edges: initEdges } = useMemo(() => buildTopologyGraph(), []);
   const [nodes, , onNodesChange] = useNodesState(initNodes);
@@ -219,12 +240,13 @@ export function TopologyPage() {
         </ReactFlow>
 
         {/* Detail panel */}
-        {selected && (
-          <DetailPanel
-            data={selected.data}
-            type={selected.type}
-            onClose={() => setSelected(null)}
-          />
+          {selected && (
+            <DetailPanel
+              data={selected.data}
+              type={selected.type}
+              onClose={() => setSelected(null)}
+              onRunTool={(toolName) => navigate(`/tools?tool=${toolName}`)}
+            />
         )}
       </div>
     </div>

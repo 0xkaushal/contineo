@@ -7,6 +7,7 @@ import { TimelinePage } from './pages/TimelinePage';
 import { ReplayPage } from './pages/ReplayPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { CostsPage } from './pages/CostsPage';
+import { ToolsPage } from './pages/ToolsPage';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/replay" element={<ReplayPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/costs" element={<CostsPage />} />
+            <Route path="/tools" element={<ToolsPage />} />
             </Routes>
           </main>
         </div>

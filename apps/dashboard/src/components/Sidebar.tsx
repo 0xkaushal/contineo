@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, GitBranch, PlayCircle, BarChart2, DollarSign, Zap, Sun, Moon, Share2 } from 'lucide-react';
+import { LayoutGrid, GitBranch, PlayCircle, BarChart2, DollarSign, Zap, Sun, Moon, Share2, Terminal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/replay', label: 'Replay', icon: PlayCircle },
   { to: '/analytics', label: 'Analytics', icon: BarChart2 },
   { to: '/costs', label: 'Costs', icon: DollarSign },
+  { to: '/tools', label: 'Tools', icon: Terminal },
 ];
 
 export function Sidebar() {
