@@ -266,3 +266,97 @@ If direct `invoke`/`ainvoke` patching is desired for other reasons, add a guard 
 No issues found.
 
 ---
+
+## [5e51dcb5] 2026-08-01 18:37 UTC — ❌ Issues Found
+
+**Commit:** `5e51dcb53bbe8ef4fa9d7109e60bb8aa2226d6f3`
+**Message:** feat: implement SQLite storage backend and integrate with SDK for session persistence
+
+### What works ✅
+- `SqliteStorage` connects, creates schema, writes sessions and spans to disk
+- Data survives process restart — `get_timeline(session_id)` returns correct timeline from a fresh `SqliteStorage` instance
+- Span data fully round-tripped: kind, label, status, duration_ms, metadata, error all persisted correctly
+- `@observe` + SQLite: sessions and spans written, total_ms accurate
+- `attach()` + SQLite: sessions and spans written, total_ms accurate
+- Error path: failed sessions stored with `success=0`, `is_complete=1`
+- `contineo.init(storage=SqliteStorage(...))` wires storage through to `TimelineService` correctly
+
+---
+
+### Issue 1 — `project_id` and `agent_name` always empty in DB
+
+#### Description
+
+Every row in the `sessions` table has `project_id=''` and `agent_name=''` regardless of what was passed to `contineo.init()` or `@contineo.observe()`. This breaks `list_sessions(project_id=...)` — it always returns `[]`.
+
+#### Steps to Reproduce
+
+```python
+import contineo, time
+from contineo.storage.sqlite import SqliteStorage
+
+storage = SqliteStorage("/tmp/test.db")
+contineo.init(project_id="weather-app", storage=storage)
+
+@contineo.observe(agent_name="weather-agent")
+def run(q: str, **kwargs): return "done"
+
+run("hello")
+time.sleep(0.3)
+
+import sqlite3
+row = sqlite3.connect("/tmp/test.db").execute("SELECT project_id, agent_name FROM sessions").fetchone()
+print(row)  # ('', '')  — expected ('weather-app', 'weather-agent')
+```
+
+**Observed:** `project_id=''`, `agent_name=''`
+**Expected:** `project_id='weather-app'`, `agent_name='weather-agent'`
+
+#### Root Cause
+
+`save_session()` calls `_project_id_from(timeline)` which reads `metadata.get("project_id", "")` from the session span. But `_on_session_started()` in `src/contineo/timeline/service.py:158` never writes `project_id` into span metadata.
+
+#### Suggested Fix
+
+Add `project_id` to the session span metadata in `_on_session_started()`:
+
+```python
+# src/contineo/timeline/service.py
+metadata={
+    "agent_name": event.agent_name,
+    "framework": event.framework.value,
+    "input": event.input,
+    "tags": event.tags,
+    "project_id": event.project_id,   # ← add this line
+},
+```
+
+---
+
+### Issue 2 — `agent_with_sqlite.py` shows no timeline and no previous sessions
+
+#### Description
+
+Running `examples/LangGraph/agent_with_sqlite.py` produces correct answers but the timeline is never printed and previous sessions never appear even after multiple runs. Two root causes:
+
+1. **Issue 1 above** — `project_id` is empty so `list_sessions("weather-app")` returns nothing
+2. **Race condition** — `time.sleep(0.05)` in `main()` is too short when using `attach()`. `session.finished` is emitted via `fire()` (non-blocking) inside the stream generator, so by the time `get_timeline()` is called, the session span may not yet be committed
+
+#### Steps to Reproduce
+
+```bash
+cd examples/LangGraph
+python agent_with_sqlite.py   # run twice
+# Second run still shows "(no previous sessions found)" and no timeline
+```
+
+#### Suggested Fix
+
+1. Fix Issue 1 first (adds `project_id` to metadata)
+2. Increase sleep in `main()` from `0.05` to `0.2` seconds:
+
+```python
+import time; time.sleep(0.2)   # was 0.05 — too short for fire() to settle
+```
+
+---
